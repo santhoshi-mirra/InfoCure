@@ -1,136 +1,33 @@
 import { useState, memo, useCallback } from "react";
 
-const OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions";
-const API_KEY = import.meta.env.VITE_OPENROUTER_API_KEY;
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 const sanitizeInput = (input) => input.trim().slice(0, 500);
 
-async function callAI(prompt, maxTokens = 500) {
+async function checkClaim(claim, language) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 20000);
   try {
-    const response = await fetch(OPENROUTER_API_URL, {
+    const response = await fetch(`${SUPABASE_URL}/functions/v1/check-claim`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${API_KEY}`,
-        "HTTP-Referer": "https://infocure.app",
-        "X-Title": "InfoCure",
+        "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
       },
-      body: JSON.stringify({
-        model: "openrouter/free",
-        messages: [{ role: "user", content: prompt }],
-        max_tokens: maxTokens,
-      }),
+      body: JSON.stringify({ claim, language }),
       signal: controller.signal,
     });
     clearTimeout(timeout);
     const data = await response.json();
-    if (data.error) {
-      console.error("API Error:", data.error);
-      throw new Error("Unable to process request. Please try again.");
-    }
-    return data.choices?.[0]?.message?.content || "";
+    if (data.error) throw new Error(data.error);
+    return data;
   } catch (err) {
     clearTimeout(timeout);
     if (err.name === "AbortError") throw new Error("Request timed out. Please try again.");
     throw new Error(err.message || "API call failed");
   }
 }
-
-async function callAIWithRetry(prompt, maxTokens = 500, retries = 2) {
-  try {
-    return await callAI(prompt, maxTokens);
-  } catch (err) {
-    if (retries > 0) return callAIWithRetry(prompt, maxTokens, retries - 1);
-    throw err;
-  }
-}
-
-const getPrompt = (input, language) => {
-  return `You are a knowledgeable health fact-checker helping NGO community health workers. Respond in plain text only. No markdown, no asterisks, no bold formatting.
-
-Respond in ${language}. Keep ALL section labels in English exactly as shown.
-
-Input: "${input}"
-
-VERDICT: [write only the single word SUPPORTED or MISLEADING or UNSUPPORTED]
-
-EXPLANATION:
-[3 plain sentences in ${language} explaining what is true or false and why. Reference a real health guideline.]
-
-SOURCE:
-[Name the most relevant health authority for this specific claim. Choose the most appropriate: World Health Organization (WHO), Centers for Disease Control (CDC), National Institutes of Health (NIH), American Heart Association (AHA), American Diabetes Association (ADA), or another relevant authority. Do not always default to WHO.]
-
-WHATSAPP REPLY:
-[2-3 warm friendly sentences in ${language} as if texting in a community group chat. Do NOT repeat the explanation word for word. Be conversational. End with the source name in parentheses in English.]`;
-};
-
-const parseResult = (text) => {
-  if (!text) return null;
-
-  const cleaned = text
-    .replace(/\*\*/g, "")
-    .replace(/\*/g, "")
-    .replace(/#{1,6}\s/g, "")
-    .trim();
-
-  let verdict = "MISLEADING";
-  let explanation = "";
-  let source = "World Health Organization (WHO)";
-  let whatsapp = "";
-  let section = "";
-
-  const lines = cleaned.split("\n").map(l => l.trim()).filter(Boolean);
-
-  for (const line of lines) {
-    const low = line.toLowerCase();
-    if (low.startsWith("verdict:")) {
-      const v = line.slice(8).trim().toUpperCase();
-      if (v.includes("UNSUPPORTED") || v.includes("NOT SUPPORTED")) verdict = "UNSUPPORTED";
-      else if (v.includes("SUPPORTED") && !v.includes("UN")) verdict = "SUPPORTED";
-      else verdict = "MISLEADING";
-      section = "";
-    } else if (low.startsWith("explanation:")) {
-      section = "exp";
-      const rest = line.slice(12).trim();
-      if (rest) explanation += rest + " ";
-    } else if (low.startsWith("source:")) {
-      section = "src";
-      const rest = line.slice(7).trim();
-      if (rest) source = rest;
-    } else if (low.startsWith("whatsapp reply:")) {
-      section = "wa";
-      const rest = line.slice(15).trim();
-      if (rest) whatsapp += rest + " ";
-    } else {
-      if (section === "exp") explanation += line + " ";
-      else if (section === "src") source = line;
-      else if (section === "wa") whatsapp += line + " ";
-    }
-  }
-
-  explanation = explanation.trim();
-  whatsapp = whatsapp.trim();
-
-  if (!explanation && cleaned.length > 20) {
-    explanation = cleaned.slice(0, 400);
-  }
-  if (!whatsapp && explanation) {
-    whatsapp = explanation.slice(0, 200);
-  }
-
-  if (!parsed) {
-    parsed = {
-      verdict: "MISLEADING",
-      explanation: text,
-      source: "World Health Organization (WHO)",
-      whatsapp: text.slice(0, 200)
-    };
-  }
-
-  return { verdict, explanation, source, whatsapp };
-};
 
 function DisclaimerModal({ onAgree }) {
   return (
@@ -301,32 +198,13 @@ export default function App() {
     setReported(false);
     setLoading(true);
     setCurrentClaim(input);
-    setLoadingStep("Checking relevance...");
+    setLoadingStep("Analyzing...");
 
     try {
-      const relevanceCheck = await callAIWithRetry(
-        `Is the following specifically about health, medicine, nutrition, disease, or medical treatment? Reply YES or NO only.\n"${input}"`, 5
-      );
+      const parsed = await checkClaim(input, language);
 
-      if (!relevanceCheck.trim().toUpperCase().startsWith("YES")) {
-        setOffTopic(true);
-        setLoading(false);
-        setLoadingStep("");
-        return;
-      }
-
-      setLoadingStep("Analyzing...");
-
-      const text = await callAIWithRetry(getPrompt(input, language), 500);
-      let parsed = parseResult(text);
-
-      if (!parsed) {
-        parsed = {
-          verdict: "MISLEADING",
-          explanation: text,
-          source: "World Health Organization (WHO)",
-          whatsapp: text.slice(0, 200)
-        };
+      if (!parsed || !parsed.explanation) {
+        throw new Error("Could not analyze this claim. Please try again.");
       }
 
       setResult(parsed);
