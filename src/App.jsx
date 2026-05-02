@@ -97,7 +97,6 @@ function ResultCard({ result, onReport, reported }) {
       <div className="result-header">
         <VerdictBadge verdict={result.verdict} />
       </div>
-      <span className="confidence">Confidence: Medium</span>
       <div className="result-section">
         <h4>Analysis</h4>
         <p>{result.explanation}</p>
@@ -292,13 +291,14 @@ WHATSAPP REPLY:
         return;
       }
 
-      if (!parsed.explanation || !parsed.whatsapp) {
+      if (!parsed.explanation) {
         throw new Error("Unexpected response format. Please try again.");
       }
 
       if (language !== "English") {
         setLoadingStep(`Translating to ${language}...`);
-        const translatePrompt = `Translate into ${language}. Natural and friendly tone. Return only translated text.
+        try {
+          const translatePrompt = `Translate into ${language}. Natural and friendly tone. Return only translated text.
 
 EXPLANATION: ${parsed.explanation}
 WHATSAPP REPLY: ${parsed.whatsapp}
@@ -307,11 +307,14 @@ Return in this exact format:
 EXPLANATION: [translated]
 WHATSAPP REPLY: [translated]`;
 
-        const translated = await callAIWithRetry(translatePrompt);
-        const expMatch = translated.match(/EXPLANATION:\s*([\s\S]*?)(?=WHATSAPP REPLY:|$)/i);
-        const waMatch = translated.match(/WHATSAPP REPLY:\s*([\s\S]*?)$/i);
-        if (expMatch) parsed.explanation = expMatch[1].trim();
-        if (waMatch) parsed.whatsapp = waMatch[1].trim();
+          const translated = await callAIWithRetry(translatePrompt);
+          const expMatch = translated.match(/EXPLANATION:\s*([\s\S]*?)(?=WHATSAPP REPLY:|$)/i);
+          const waMatch = translated.match(/WHATSAPP REPLY:\s*([\s\S]*?)$/i);
+          if (expMatch) parsed.explanation = expMatch[1].trim();
+          if (waMatch) parsed.whatsapp = waMatch[1].trim();
+        } catch {
+          // Translation failed silently — keep English result
+        }
       }
 
       setResult(parsed);
@@ -358,8 +361,9 @@ WHATSAPP REPLY: [translated]`;
         <header className="header">
           <h1>InfoCure</h1>
           <p>Health Misinformation Detector for Community Health Workers</p>
+          <p className="subtle-note">Works best with simple, clear health claims.</p>
           <div className="about-banner">
-            <p>Health misinformation spreads rapidly through WhatsApp groups in developing regions, leading to dangerous health decisions in communities with limited access to medical professionals. InfoCure helps NGO field workers instantly verify claims and respond with evidence-based information directly shareable to their communities.</p>
+            <p>Health misinformation spreads rapidly through WhatsApp groups in developing regions, leading to dangerous health decisions in communities with limited access to medical professionals. InfoCure helps NGO field workers instantly verify claims and respond with evidence-based information — directly shareable to their communities.</p>
           </div>
         </header>
         <main className="main">
