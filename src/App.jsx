@@ -399,7 +399,7 @@ export default function App() {
           <p>Health Misinformation Detector for Community Health Workers</p>
           <p className="subtle-note">Works best with clear health claims.</p>
           <div className="about-banner">
-            <p>Health misinformation spreads rapidly through WhatsApp groups in developing regions, leading to dangerous health decisions in communities with limited access to medical professionals. InfoCure helps NGO field workers instantly verify claims and respond with evidence-based information — directly shareable to their communities.</p>
+            <p>Health misinformation spreads rapidly through WhatsApp groups in developing regions, leading to dangerous health decisions in communities with limited access to medical professionals. InfoCure helps NGO field workers instantly verify claims and respond with evidence-based information directly shareable to their communities.</p>
           </div>
         </header>
         <main className="main">
