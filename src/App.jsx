@@ -5,15 +5,15 @@ const API_KEY = import.meta.env.VITE_OPENROUTER_API_KEY;
 
 const sanitizeInput = (input) => input.trim().slice(0, 500);
 
-async function callAI(prompt, maxTokens = 600) {
+async function callAI(prompt, maxTokens = 500) {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 25000);
+  const timeout = setTimeout(() => controller.abort(), 20000);
   try {
     const response = await fetch(OPENROUTER_API_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${API_KEY}`,
+        "Authorization": `Bearer ${API_KEY}`,
         "HTTP-Referer": "https://infocure.app",
         "X-Title": "InfoCure",
       },
@@ -21,7 +21,6 @@ async function callAI(prompt, maxTokens = 600) {
         model: "openrouter/free",
         messages: [{ role: "user", content: prompt }],
         max_tokens: maxTokens,
-        temperature: 0.4,
       }),
       signal: controller.signal,
     });
@@ -39,7 +38,7 @@ async function callAI(prompt, maxTokens = 600) {
   }
 }
 
-async function callAIWithRetry(prompt, maxTokens = 600, retries = 2) {
+async function callAIWithRetry(prompt, maxTokens = 500, retries = 2) {
   try {
     return await callAI(prompt, maxTokens);
   } catch (err) {
@@ -48,125 +47,91 @@ async function callAIWithRetry(prompt, maxTokens = 600, retries = 2) {
   }
 }
 
-/* ---------- Prompt ---------- */
-const getPrompt = (input, language) => `You are a careful health fact-checker for NGO community health workers. Evaluate the user's claim against established guidance from major health authorities (WHO, CDC, NIH, AHA, ADA, NHS, UNICEF, ECDC, FDA, peer-reviewed medical literature).
+const getPrompt = (input, language) => {
+  return `You are a knowledgeable health fact-checker helping NGO community health workers. Respond in plain text only. No markdown, no asterisks, no bold formatting.
 
-RULES:
-- Choose the verdict honestly: SUPPORTED (well-supported by evidence), MISLEADING (partial truth or missing context), or UNSUPPORTED (false or dangerous).
-- Pick the SOURCE most relevant to THIS specific claim. DO NOT default to WHO. Use CDC for infectious disease, AHA for cardiovascular, ADA for diabetes, NIH for general biomedical research, UNICEF for child/maternal health, NHS for clinical guidance, etc.
-- The WHATSAPP REPLY MUST be different in wording and tone from the EXPLANATION. The explanation is formal and informative. The WhatsApp reply is warm, friendly, and conversational — like texting a neighbor in a community group. Short sentences. No jargon. End with the source name in parentheses (in English).
-- Write EXPLANATION and WHATSAPP REPLY in ${language}. Keep the source authority name in English.
-- Use the exact section labels below. Plain text only — no markdown, no asterisks.
+Respond in ${language}. Keep ALL section labels in English exactly as shown.
 
-Claim: "${input}"
+Input: "${input}"
 
-VERDICT: <one word: SUPPORTED, MISLEADING, or UNSUPPORTED>
+VERDICT: [write only the single word SUPPORTED or MISLEADING or UNSUPPORTED]
 
 EXPLANATION:
-<3 plain sentences in ${language} explaining what is true or false and why, referencing the relevant guideline.>
+[3 plain sentences in ${language} explaining what is true or false and why. Reference a real health guideline.]
 
 SOURCE:
-<Name of the most relevant health authority for this specific claim, in English.>
+[Name the most relevant health authority for this specific claim. Choose the most appropriate: World Health Organization (WHO), Centers for Disease Control (CDC), National Institutes of Health (NIH), American Heart Association (AHA), American Diabetes Association (ADA), or another relevant authority. Do not always default to WHO.]
 
 WHATSAPP REPLY:
-<2-3 warm, conversational sentences in ${language} as if texting in a community group chat. Different wording and tone from the explanation. End with the source name in parentheses in English.>`;
-
-/* ---------- Bulletproof parser ---------- */
-const normalizeVerdict = (raw) => {
-  const s = String(raw || "").toUpperCase();
-  if (s.includes("UNSUPPORTED") || s.includes("NOT SUPPORTED") || s.includes("FALSE")) return "UNSUPPORTED";
-  if (s.includes("MISLEADING") || s.includes("PARTIAL")) return "MISLEADING";
-  if (s.includes("SUPPORTED") && !s.includes("UN") && !s.includes("NOT")) return "SUPPORTED";
-  if (s.includes("TRUE") || s.includes("CORRECT") || s.includes("ACCURATE")) return "SUPPORTED";
-  return "MISLEADING";
+[2-3 warm friendly sentences in ${language} as if texting in a community group chat. Do NOT repeat the explanation word for word. Be conversational. End with the source name in parentheses in English.]`;
 };
 
-const shorten = (s, n) => {
-  const t = String(s || "").replace(/\s+/g, " ").trim();
-  return t.length <= n ? t : t.slice(0, n - 1) + "…";
-};
+const parseResult = (text) => {
+  if (!text) return null;
 
-const inferSource = (text) => {
-  const t = String(text || "").toLowerCase();
-  if (t.includes("heart") || t.includes("blood pressure") || t.includes("cardio") || t.includes("cholesterol"))
-    return "American Heart Association (AHA)";
-  if (t.includes("diabet") || t.includes("insulin") || t.includes("blood sugar"))
-    return "American Diabetes Association (ADA)";
-  if (t.includes("vaccin") || t.includes("infection") || t.includes("outbreak") || t.includes("covid") || t.includes("flu") || t.includes("malaria"))
-    return "Centers for Disease Control and Prevention (CDC)";
-  if (t.includes("child") || t.includes("infant") || t.includes("breastfeed") || t.includes("maternal") || t.includes("pregnan"))
-    return "UNICEF";
-  if (t.includes("cancer") || t.includes("research") || t.includes("study") || t.includes("trial"))
-    return "National Institutes of Health (NIH)";
-  return "World Health Organization (WHO)";
-};
-
-const parseResult = (text, originalInput = "") => {
-  const safe = String(text || "");
-
-  // Aggressive cleanup of markdown
-  const cleaned = safe
+  const cleaned = text
     .replace(/\*\*/g, "")
     .replace(/\*/g, "")
-    .replace(/^#{1,6}\s+/gm, "")
-    .replace(/```[a-z]*|```/g, "")
-    .replace(/^\s*[-•]\s+/gm, "")
+    .replace(/#{1,6}\s/g, "")
     .trim();
 
-  // Extract by label using regex that tolerates colons, dashes, blank lines, markdown remnants
-  const grab = (label) => {
-    const re = new RegExp(
-      `${label}\\s*[:\\-–]?\\s*([\\s\\S]*?)(?=\\n\\s*(?:VERDICT|EXPLANATION|ANALYSIS|SOURCE|REFERENCE|WHATSAPP\\s*REPLY|WHATSAPP|SHAREABLE)\\s*[:\\-–]?|$)`,
-      "i"
-    );
-    const m = cleaned.match(re);
-    return m?.[1]?.trim().replace(/^["']|["']$/g, "") || "";
-  };
+  let verdict = "MISLEADING";
+  let explanation = "";
+  let source = "World Health Organization (WHO)";
+  let whatsapp = "";
+  let section = "";
 
-  let verdict = grab("VERDICT");
-  let explanation = grab("EXPLANATION") || grab("ANALYSIS");
-  let source = grab("SOURCE") || grab("REFERENCE");
-  let whatsapp = grab("WHATSAPP REPLY") || grab("WHATSAPP") || grab("SHAREABLE");
+  const lines = cleaned.split("\n").map(l => l.trim()).filter(Boolean);
 
-  // Verdict fallback: scan first 200 chars
-  if (!verdict) verdict = cleaned.slice(0, 200);
-  verdict = normalizeVerdict(verdict);
-
-  // Explanation fallback: take meaningful prose from the response
-  if (!explanation) {
-    const paragraphs = cleaned
-      .split(/\n{2,}/)
-      .map((p) => p.trim())
-      .filter((p) => p.length > 40 && !/^(verdict|source|whatsapp)/i.test(p));
-    explanation = paragraphs[0] || shorten(cleaned, 400) || "We could not generate a detailed analysis for this claim. Please consult a qualified healthcare professional.";
+  for (const line of lines) {
+    const low = line.toLowerCase();
+    if (low.startsWith("verdict:")) {
+      const v = line.slice(8).trim().toUpperCase();
+      if (v.includes("UNSUPPORTED") || v.includes("NOT SUPPORTED")) verdict = "UNSUPPORTED";
+      else if (v.includes("SUPPORTED") && !v.includes("UN")) verdict = "SUPPORTED";
+      else verdict = "MISLEADING";
+      section = "";
+    } else if (low.startsWith("explanation:")) {
+      section = "exp";
+      const rest = line.slice(12).trim();
+      if (rest) explanation += rest + " ";
+    } else if (low.startsWith("source:")) {
+      section = "src";
+      const rest = line.slice(7).trim();
+      if (rest) source = rest;
+    } else if (low.startsWith("whatsapp reply:")) {
+      section = "wa";
+      const rest = line.slice(15).trim();
+      if (rest) whatsapp += rest + " ";
+    } else {
+      if (section === "exp") explanation += line + " ";
+      else if (section === "src") source = line;
+      else if (section === "wa") whatsapp += line + " ";
+    }
   }
 
-  // Source fallback: infer from claim + explanation
-  if (!source || source.length < 3 || source.length > 120) {
-    source = inferSource(originalInput + " " + explanation);
-  } else {
-    // Strip trailing punctuation/quotes
-    source = source.replace(/[.,;]\s*$/, "").trim();
+  explanation = explanation.trim();
+  whatsapp = whatsapp.trim();
+
+  if (!explanation && cleaned.length > 20) {
+    explanation = cleaned.slice(0, 400);
+  }
+  if (!whatsapp && explanation) {
+    whatsapp = explanation.slice(0, 200);
   }
 
-  // WhatsApp fallback: ALWAYS produce something distinct from the explanation
-  if (!whatsapp || whatsapp.length < 20) {
-    whatsapp = `Hey! Quick note on this one — ${shorten(explanation, 180)} Always best to check with a clinic if you're unsure. (${source})`;
-  } else if (whatsapp.trim().toLowerCase() === explanation.trim().toLowerCase()) {
-    // If model returned the same text, soften it
-    whatsapp = `Just sharing — ${shorten(explanation, 180)} Stay safe everyone! (${source})`;
+  if (!parsed) {
+    parsed = {
+      verdict: "MISLEADING",
+      explanation: text,
+      source: "World Health Organization (WHO)",
+      whatsapp: text.slice(0, 200)
+    };
   }
 
-  // Final guarantees: NEVER return null
-  return {
-    verdict,
-    explanation: explanation.trim(),
-    source: source.trim(),
-    whatsapp: whatsapp.trim(),
-  };
+  return { verdict, explanation, source, whatsapp };
 };
 
-/* ---------- UI components ---------- */
 function DisclaimerModal({ onAgree }) {
   return (
     <div className="modal-overlay">
@@ -199,6 +164,7 @@ function VerdictBadge({ verdict }) {
 
 const ResultCard = memo(function ResultCard({ result, onReport, reported }) {
   const [copied, setCopied] = useState(false);
+
   const handleCopy = async () => {
     try {
       await navigator.clipboard.writeText(result.whatsapp);
@@ -339,8 +305,7 @@ export default function App() {
 
     try {
       const relevanceCheck = await callAIWithRetry(
-        `Is the following specifically about health, medicine, nutrition, disease, or medical treatment? Reply YES or NO only.\n"${input}"`,
-        5
+        `Is the following specifically about health, medicine, nutrition, disease, or medical treatment? Reply YES or NO only.\n"${input}"`, 5
       );
 
       if (!relevanceCheck.trim().toUpperCase().startsWith("YES")) {
@@ -352,8 +317,17 @@ export default function App() {
 
       setLoadingStep("Analyzing...");
 
-      const text = await callAIWithRetry(getPrompt(input, language), 600);
-      const parsed = parseResult(text, input); // never returns null
+      const text = await callAIWithRetry(getPrompt(input, language), 500);
+      let parsed = parseResult(text);
+
+      if (!parsed) {
+        parsed = {
+          verdict: "MISLEADING",
+          explanation: text,
+          source: "World Health Organization (WHO)",
+          whatsapp: text.slice(0, 200)
+        };
+      }
 
       setResult(parsed);
       setHistory(prev => [{
@@ -395,12 +369,10 @@ export default function App() {
       {!agreed && <DisclaimerModal onAgree={() => setAgreed(true)} />}
       <div className="app">
         <header className="header">
+          <div className="header-tag">For NGO community health workers</div>
           <h1>InfoCure</h1>
-          <p>Health Misinformation Detector for Community Health Workers</p>
-          <p className="subtle-note">Works best with clear health claims.</p>
-          <div className="about-banner">
-            <p>Health misinformation spreads rapidly through WhatsApp groups in developing regions, leading to dangerous health decisions in communities with limited access to medical professionals. InfoCure helps NGO field workers instantly verify claims and respond with evidence-based information directly shareable to their communities.</p>
-          </div>
+          <p className="header-tagline">Verify health claims circulating on WhatsApp. Get an evidence-based reply you can share with your community in seconds.</p>
+          <p className="header-sub">Health misinformation spreads rapidly through messaging apps in regions with limited access to medical professionals. InfoCure helps field workers respond with sourced, plain-language guidance in 11 languages.</p>
         </header>
         <main className="main">
           {offTopic && (
