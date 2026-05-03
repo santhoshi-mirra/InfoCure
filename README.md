@@ -8,7 +8,7 @@
 
 ## What is InfoCure?
 
-Health misinformation spreads quickly through WhatsApp groups in developing areas. This can lead to harmful health decisions in communities that have limited access to medical professionals. InfoCure helps NGO field workers verify health claims instantly. They can then respond with information based on evidence, which is easy to share with their communities.
+Health misinformation spreads quickly through social media groups in developing areas. This can lead to harmful health decisions in communities that have limited access to medical professionals. InfoCure helps NGO field workers verify health claims instantly. They can then respond with information based on evidence, which is easy to share with their communities.
 
 **Built for:** GNEC Hackathon 2026 — SDG 3 (Good Health and Well-being)
 
@@ -19,7 +19,7 @@ Health misinformation spreads quickly through WhatsApp groups in developing area
 - Instant fact-checking of health claims and questions
 - Evidence-based verdicts: Supported, Partially Supported, or Not Supported 
 - Source citations from WHO, CDC, and NIH 
-- WhatsApp-ready shareable reply with one click
+- Social media-ready shareable reply with one click
 - 11 language support: English, Arabic, French, Swahili, Hindi, Urdu, Portuguese, Spanish, Bengali, Hausa, Pashto
 - Off-topic query rejection
 - Claim history for the session
@@ -81,7 +81,7 @@ npm run dev
 
 ## SDG 3 Alignment
 
-InfoCure works on the  **SDG 3 — Good Health and Well-being** by fighting health misinformation, which is a big but often ignored problem in developing areas. By giving NGO workers accurate info they can share, the app helps people in those regions make safer decisions about their health.
+InfoCure works on the SDG 3 — Good Health and Well-being by fighting health misinformation, which is a big but often ignored problem in developing areas. By giving NGO workers accurate info they can share, the app helps people in those regions make safer decisions about their health.
 ---
 
 ## License
