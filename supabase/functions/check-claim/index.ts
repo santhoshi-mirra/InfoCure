@@ -5,6 +5,26 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+async function callAI(prompt: string, maxTokens: number = 500) {
+  const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${Deno.env.get("OPENROUTER_API_KEY")}`,
+      "HTTP-Referer": "https://infocure.app",
+      "X-Title": "InfoCure",
+    },
+    body: JSON.stringify({
+      model: "openrouter/free",
+      messages: [{ role: "user", content: prompt }],
+      max_tokens: maxTokens,
+    }),
+  });
+  const data = await response.json();
+  if (data.error) throw new Error(data.error.message);
+  return data.choices?.[0]?.message?.content || "";
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -13,6 +33,19 @@ serve(async (req) => {
   try {
     const { claim, language } = await req.json();
 
+    // Step 1 — relevance check
+    const relevanceCheck = await callAI(
+      `Is the following specifically about health, medicine, nutrition, disease, or medical treatment? Reply YES or NO only.\n"${claim}"`,
+      5
+    );
+
+    if (!relevanceCheck.trim().toUpperCase().startsWith("YES")) {
+      return new Response(JSON.stringify({ offTopic: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Step 2 — analyze
     const prompt = `You are a health fact-checker for NGO community health workers. Respond in plain text only. No markdown. No asterisks. No bold text.
 
 Respond in ${language}. Use EXACTLY these labels in English.
@@ -22,46 +55,17 @@ Input: "${claim}"
 VERDICT: [write only SUPPORTED or MISLEADING or UNSUPPORTED]
 
 EXPLANATION:
-[3 plain sentences in ${language} explaining the facts clearly. Reference actual medical evidence.]
+[3 plain sentences in ${language} explaining the facts clearly. No jargon.]
 
 SOURCE:
-[Write the name of the SPECIFIC health authority whose research directly supports your answer. Choose carefully:
-- Vaccine claims → Centers for Disease Control (CDC)
-- Heart/blood pressure claims → American Heart Association (AHA)  
-- Diabetes claims → American Diabetes Association (ADA)
-- Cancer claims → American Cancer Society (ACS)
-- Nutrition claims → World Health Organization (WHO) or National Institutes of Health (NIH)
-- General medical research → National Institutes of Health (NIH)
-- WHO only for global health policy
-Pick ONE most relevant authority. Write only the name.]
+[Write the name of the most relevant and credible health authority or research institution for this specific claim. This can be any recognized organization — CDC, NIH, WHO, AHA, ADA, ACS, Mayo Clinic, Harvard Medical School, UNICEF, peer-reviewed journals, or any other credible medical source. Pick the single most relevant one. Write the name only.]
 
 WHATSAPP REPLY:
-[2-3 warm friendly sentences in ${language} for a community WhatsApp group. Do not repeat the explanation word for word. End with the source name in parentheses in English.]`;
+[2-3 warm friendly sentences in ${language}. Do not repeat explanation word for word. Be conversational. End with source in parentheses in English.]`;
 
-    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${Deno.env.get("OPENROUTER_API_KEY")}`,
-        "HTTP-Referer": "https://infocure.app",
-        "X-Title": "InfoCure",
-      },
-      body: JSON.stringify({
-        model: "openrouter/free",
-        messages: [{ role: "user", content: prompt }],
-        max_tokens: 600,
-      }),
-    });
+    const text = await callAI(prompt, 500);
 
-    const data = await response.json();
-
-    if (data.error) {
-      throw new Error(data.error.message);
-    }
-
-    const rawText = data.choices?.[0]?.message?.content || "";
-
-    const cleaned = rawText.replace(/\*\*/g, "").replace(/\*/g, "").trim();
+    const cleaned = text.replace(/\*\*/g, "").replace(/\*/g, "").trim();
     const lines = cleaned.split("\n").map((l: string) => l.trim()).filter(Boolean);
 
     let verdict = "MISLEADING";
@@ -103,7 +107,7 @@ WHATSAPP REPLY:
 
     if (!explanation) explanation = cleaned.slice(0, 400);
     if (!whatsapp) whatsapp = explanation.slice(0, 200);
-    if (!source) source = "Centers for Disease Control (CDC)";
+    if (!source) source = "World Health Organization (WHO)";
 
     return new Response(JSON.stringify({ verdict, explanation, source, whatsapp }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
