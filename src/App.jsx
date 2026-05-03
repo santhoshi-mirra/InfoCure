@@ -8,18 +8,30 @@ const sanitizeInput = (input) => input.trim().slice(0, 500);
 async function checkClaim(claim, language) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 20000);
+  
   try {
     const response = await fetch(`${SUPABASE_URL}/functions/v1/check-claim`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
+        "apikey": SUPABASE_ANON_KEY, // ← ADD THIS - CRITICAL FIX
       },
       body: JSON.stringify({ claim, language }),
       signal: controller.signal,
     });
+    
     clearTimeout(timeout);
+    
+    // Check if response is OK before trying to parse JSON
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("API Error:", response.status, errorText);
+      throw new Error(`Server error: ${response.status}`);
+    }
+    
     const data = await response.json();
+    
     if (data.error) throw new Error(data.error);
     return data;
   } catch (err) {
@@ -201,23 +213,31 @@ export default function App() {
     setLoadingStep("Analyzing...");
 
     try {
-      const parsed = await checkClaim(input, language);
+      const data = await checkClaim(input, language);
 
-      if (!parsed || !parsed.explanation) {
+      if (data.offTopic) {
+        setOffTopic(true);
+        setLoading(false);
+        setLoadingStep("");
+        return;
+      }
+
+      if (!data.explanation) {
         throw new Error("Could not analyze this claim. Please try again.");
       }
 
-      setResult(parsed);
+      setResult(data);
       setHistory(prev => [{
         claim: input.length > 60 ? input.substring(0, 60) + "..." : input,
-        verdict: parsed.verdict,
+        verdict: data.verdict,
       }, ...prev].slice(0, 5));
 
     } catch (err) {
+      console.error("Check claim error:", err);
       setError(
         err.message.includes("timed out")
           ? "Server is busy. Please try again in a moment."
-          : err.message
+          : err.message || "Failed to analyze claim. Please try again."
       );
     }
 
