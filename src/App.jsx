@@ -249,7 +249,7 @@ export default function App() {
         <header className="header">
           <div className="header-tag">For NGO community health workers</div>
           <h1>InfoCure</h1>
-          <p className="header-tagline">Verify health claims circulating on WhatsApp. Get an evidence-based reply you can share with your community in seconds.</p>
+          <p className="header-tagline">Verify health claims circulating on social media. Get an evidence-based reply you can share with your community in seconds.</p>
           <p className="header-sub">Health misinformation spreads rapidly through messaging apps in regions with limited access to medical professionals. InfoCure helps field workers respond with sourced, plain-language guidance in 11 languages.</p>
         </header>
         <main className="main">
