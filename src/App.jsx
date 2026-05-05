@@ -8,30 +8,24 @@ const sanitizeInput = (input) => input.trim().slice(0, 500);
 async function checkClaim(claim, language) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 20000);
-  
   try {
     const response = await fetch(`${SUPABASE_URL}/functions/v1/check-claim`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
-        "apikey": SUPABASE_ANON_KEY, // ← ADD THIS - CRITICAL FIX
+        "apikey": SUPABASE_ANON_KEY,
       },
       body: JSON.stringify({ claim, language }),
       signal: controller.signal,
     });
-    
     clearTimeout(timeout);
-    
-    // Check if response is OK before trying to parse JSON
     if (!response.ok) {
       const errorText = await response.text();
       console.error("API Error:", response.status, errorText);
       throw new Error(`Server error: ${response.status}`);
     }
-    
     const data = await response.json();
-    
     if (data.error) throw new Error(data.error);
     return data;
   } catch (err) {
@@ -168,6 +162,7 @@ export default function App() {
   const [error, setError] = useState("");
   const [warning, setWarning] = useState("");
   const [offTopic, setOffTopic] = useState(false);
+  const [crisis, setCrisis] = useState(false);
   const [language, setLanguage] = useState("English");
   const [history, setHistory] = useState([]);
   const [reports, setReports] = useState([]);
@@ -183,6 +178,7 @@ export default function App() {
   const resetState = () => {
     setResult(null);
     setOffTopic(false);
+    setCrisis(false);
     setWarning("");
     setError("");
   };
@@ -207,6 +203,7 @@ export default function App() {
     setError("");
     setResult(null);
     setOffTopic(false);
+    setCrisis(false);
     setReported(false);
     setLoading(true);
     setCurrentClaim(input);
@@ -214,6 +211,13 @@ export default function App() {
 
     try {
       const data = await checkClaim(input, language);
+
+      if (data.crisis) {
+        setCrisis(true);
+        setLoading(false);
+        setLoadingStep("");
+        return;
+      }
 
       if (data.offTopic) {
         setOffTopic(true);
@@ -273,7 +277,18 @@ export default function App() {
           <p className="header-sub">Health misinformation spreads rapidly through messaging apps in regions with limited access to medical professionals. InfoCure helps field workers respond with sourced, plain-language guidance in 11 languages.</p>
         </header>
         <main className="main">
-          {offTopic && (
+          {crisis && (
+            <div className="crisis-banner">
+              <p className="crisis-title">You are not alone.</p>
+              <p>If you or someone you know is struggling, please reach out to a crisis helpline immediately. Support is available 24/7.</p>
+              <div className="crisis-links">
+                <a href="https://www.befrienders.org" target="_blank" rel="noreferrer">Befrienders Worldwide — Find support in your country</a>
+                <a href="https://www.iasp.info/resources/Crisis_Centres/" target="_blank" rel="noreferrer">International Crisis Centre Directory</a>
+              </div>
+              <p className="crisis-note">You matter. Please talk to someone.</p>
+            </div>
+          )}
+          {offTopic && !crisis && (
             <div className="offtopic-top-banner">
               This tool only covers health-related claims and questions. Please try again with a health topic.
             </div>
@@ -299,6 +314,7 @@ export default function App() {
                 setClaim(e.target.value);
                 setWarning("");
                 setOffTopic(false);
+                setCrisis(false);
                 setError("");
               }}
               onKeyDown={(e) => {

@@ -531,3 +531,48 @@ body {
   margin-top: 0.25rem;
   font-style: italic;
 }
+
+.crisis-banner {
+  background: rgba(76, 175, 125, 0.08);
+  border: 1px solid rgba(76, 175, 125, 0.3);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+  text-align: center;
+}
+
+.crisis-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--supported);
+  margin-bottom: 0.75rem;
+}
+
+.crisis-banner p {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  line-height: 1.7;
+  margin-bottom: 1rem;
+}
+
+.crisis-links {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.crisis-links a {
+  color: var(--accent);
+  font-size: 0.9rem;
+  text-decoration: none;
+}
+
+.crisis-links a:hover {
+  text-decoration: underline;
+}
+
+.crisis-note {
+  font-size: 0.825rem !important;
+  color: var(--text-faint) !important;
+  font-style: italic;
+}
