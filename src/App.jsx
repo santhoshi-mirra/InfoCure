@@ -27,6 +27,16 @@ async function checkClaim(claim, language) {
     }
     const data = await response.json();
     if (data.error) throw new Error(data.error);
+
+    // Clean up source — remove anything after newline or shareable reply bleed
+    if (data.source) {
+      data.source = data.source.split('\n')[0].trim();
+      // Remove if source accidentally contains shareable reply content
+      if (data.source.length > 100) {
+        data.source = data.source.substring(0, 100).trim();
+      }
+    }
+
     return data;
   } catch (err) {
     clearTimeout(timeout);
@@ -280,12 +290,34 @@ export default function App() {
           {crisis && (
             <div className="crisis-banner">
               <p className="crisis-title">You are not alone.</p>
-              <p>If you or someone you know is struggling, please reach out to a crisis helpline immediately. Support is available 24/7.</p>
-              <div className="crisis-links">
-                <a href="https://www.befrienders.org" target="_blank" rel="noreferrer">Befrienders Worldwide — Find support in your country</a>
-                <a href="https://www.iasp.info/resources/Crisis_Centres/" target="_blank" rel="noreferrer">International Crisis Centre Directory</a>
+              <p>If you or someone you know is struggling, please reach out immediately. Support is available 24/7 — you matter.</p>
+              <div className="crisis-hotlines">
+                <div className="hotline-item">
+                  <span className="hotline-region">🌍 International</span>
+                  <a href="https://www.befrienders.org" target="_blank" rel="noreferrer">Befrienders Worldwide — befrienders.org</a>
+                </div>
+                <div className="hotline-item">
+                  <span className="hotline-region">🇺🇸 USA</span>
+                  <a href="tel:988">988 Suicide & Crisis Lifeline — Call or text 988</a>
+                </div>
+                <div className="hotline-item">
+                  <span className="hotline-region">🇬🇧 UK</span>
+                  <a href="tel:116123">Samaritans — 116 123 (free, 24/7)</a>
+                </div>
+                <div className="hotline-item">
+                  <span className="hotline-region">🇮🇳 India</span>
+                  <a href="tel:9152987821">iCall — 9152987821</a>
+                </div>
+                <div className="hotline-item">
+                  <span className="hotline-region">🇦🇪 UAE</span>
+                  <a href="tel:8004673">Dubai Happiness Line — 800 4673</a>
+                </div>
+                <div className="hotline-item">
+                  <span className="hotline-region">🇵🇰 Pakistan</span>
+                  <a href="tel:03117786264">Umang — 0311-7786264</a>
+                </div>
               </div>
-              <p className="crisis-note">You matter. Please talk to someone.</p>
+              <p className="crisis-note">Please talk to someone. You deserve support.</p>
             </div>
           )}
           {offTopic && !crisis && (
