@@ -1,75 +1,65 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Crisis keywords — these trigger compassionate response + hotline
 const CRISIS_KEYWORDS = [
   "suicidal", "suicide", "kill myself", "end my life", "want to die",
   "don't want to live", "no reason to live", "hopeless", "worthless",
-  "can't go on", "self harm", "self-harm", "hurt myself", "cutting myself"
+  "can't go on", "self harm", "self-harm", "hurt myself", "cutting myself", "overdose", "hang myself", "jump off", "drowning myself", "shoot myself",
+  "depressed", "depression", "anxious", "anxiety", "panic attack", "ptsd", "trauma", "bipolar", "schizophrenia", "ocd", "adhd", "autism", "eating disorder", "anorexia", "bulimia",
+  "abuse", "domestic violence", "assault", "rape", "molest", "harass", "stalk", "threaten", "violence", "weapon", "gun", "knife", "cutting", "burning", "harming others"
 ];
 
-// Comprehensive health keywords
 const HEALTH_KEYWORDS = new Set([
-  // Women's health
   'menopause', 'menstruation', 'menstrual', 'period', 'periods', 'pms',
   'perimenopause', 'postmenopause', 'hormonal', 'hormone', 'hormones',
   'estrogen', 'progesterone', 'testosterone', 'ovulation', 'ovary', 'ovaries',
   'uterus', 'cervix', 'endometriosis', 'pcos', 'polycystic', 'fertility',
   'infertility', 'pregnancy', 'pregnant', 'breastfeeding', 'menstrual cycle',
   'hot flashes', 'hot flush', 'vaginal', 'contraception', 'contraceptive',
-  
-  // Mental health
   'mental', 'anxiety', 'depression', 'stress', 'trauma', 'ptsd', 'bipolar',
   'schizophrenia', 'ocd', 'adhd', 'autism', 'eating disorder', 'anorexia',
   'bulimia', 'panic attack', 'phobia', 'therapy', 'counseling', 'psychiatry',
-  'psychologist', 'antidepressant', 'medication', 'mood', 'emotional',
-  
-  // Gut & digestive health
+  'psychologist', 'antidepressant', 'mood', 'emotional',
   'probiotic', 'probiotics', 'prebiotic', 'prebiotics', 'gut', 'flora',
   'microbiome', 'digestion', 'digestive', 'stomach', 'intestine', 'colon',
   'bloating', 'constipation', 'diarrhea', 'ibs', 'crohn',
-  
-  // General health & medicine
   'health', 'healthy', 'disease', 'illness', 'symptom', 'treatment', 'therapy',
   'cure', 'remedy', 'medicine', 'medication', 'drug', 'pill', 'prescription',
   'doctor', 'hospital', 'clinic', 'nurse', 'patient', 'diagnosis', 'chronic',
-  
-  // Immune system
   'immune', 'immunity', 'antibody', 'vaccine', 'vaccination', 'booster',
-  
-  // Infections & conditions
   'virus', 'viral', 'bacteria', 'bacterial', 'infection', 'fungal', 'parasite',
   'cancer', 'tumor', 'diabetes', 'hypertension', 'asthma', 'allergy', 'allergic',
   'arthritis', 'inflammation', 'acute', 'pain', 'fever', 'cough',
-  
-  // Body systems
   'blood', 'heart', 'cardiovascular', 'liver', 'kidney', 'lung', 'brain',
   'nerve', 'muscle', 'bone', 'joint', 'skin', 'hair', 'eye', 'ear',
   'thyroid', 'adrenal', 'pancreas', 'spleen',
-  
-  // Nutrition & lifestyle
   'nutrition', 'nutrient', 'vitamin', 'mineral', 'supplement', 'herbal', 'herb',
   'diet', 'food', 'eat', 'drink', 'exercise', 'workout', 'fitness', 'weight',
   'obesity', 'sleep', 'fatigue', 'cholesterol', 'blood pressure', 'blood sugar',
-  
-  // Medical procedures
   'surgery', 'operation', 'transplant', 'dialysis', 'chemotherapy', 'radiation',
-  'biopsy', 'scan', 'mri', 'xray', 'ultrasound',
-  
-  // Demographics
-  'newborn', 'infant', 'child', 'elderly', 'senior', 'aging', 'puberty',
-]); 
+  'newborn', 'infant', 'child', 'elderly', 'senior', 'aging', 'puberty', 'adolescence', 'adult', 'teenager', 
+  'women', 'man', 'female', 'male', 'gender', 'sex', 'lgbtq', 'transgender', 'non-binary', 'intersex', 'queer',
+  'mental health', 'physical health', 'sexual health', 'reproductive health', 'women\'s health', 'men\'s health', 'child health', 
+  'elderly health', 'public health', 'global health', 'healthcare', 'health system', 'health policy', 'health insurance', 'health equity',
+]);
 
 const HEALTH_PHRASES = [
   'gut health', 'immune system', 'blood circulation', 'weight loss',
   'muscle gain', 'mental health', 'joint pain', 'back pain',
   'headache relief', 'cold remedy', 'flu prevention', 'women health',
   'reproductive health', 'sexual health', 'bone density', 'heart rate',
-  'blood type', 'body mass', 'hormone levels', 'hormonal imbalance'
+  'blood type', 'body mass', 'hormone levels', 'hormonal imbalance', 'menstrual pain', 
+  'menopause symptoms', 'breast health', 'prostate health', 'diabetes management', 
+  'hypertension control', 'asthma relief', 'allergy treatment', 'cholesterol reduction', 'sleep quality', 'stress relief', 
+  'anxiety reduction', 'depression management', 'cognitive function', 'memory improvement', 'digestion support', 'liver detox', 
+  'kidney function', 'lung capacity', 'brain health', 'eye health', 'thyroid function', 'adrenal fatigue', 
+  'pancreatic health', 'spleen function', 'nutrition absorption', 'vitamin deficiency', 'mineral imbalance', 
+  'supplement effectiveness', 'herbal remedy', 'diet plan', 'exercise routine', 'fitness level', 'weight management',
 ];
 
 function isCrisis(claim: string): boolean {
@@ -112,13 +102,11 @@ async function callAIWithRetry(
   maxRetries: number = 3
 ): Promise<string> {
   let lastError: Error | null = null;
-
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     const model = MODELS[(attempt - 1) % MODELS.length];
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 15000);
-
       const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
         method: "POST",
         headers: {
@@ -135,25 +123,20 @@ async function callAIWithRetry(
         }),
         signal: controller.signal,
       });
-
       clearTimeout(timeoutId);
-
       if (!response.ok) {
         const errorText = await response.text();
         throw new Error(`API returned ${response.status}: ${errorText}`);
       }
-
       const data = await response.json();
       const content = data.choices?.[0]?.message?.content || "";
       if (!content) throw new Error("Empty response from AI");
-
       return content
         .replace(/\*\*/g, "")
         .replace(/\*/g, "")
         .replace(/`/g, "")
         .replace(/#{1,6}\s/g, "")
         .trim();
-
     } catch (err) {
       lastError = err;
       if (attempt < maxRetries) {
@@ -161,7 +144,6 @@ async function callAIWithRetry(
       }
     }
   }
-
   throw lastError || new Error("All AI attempts failed");
 }
 
@@ -171,35 +153,44 @@ function parseAIResponse(text: string, claim: string) {
   let source = "";
   let whatsapp = "";
 
-  const patterns = {
-    verdict: [/VERDICT:\s*(SUPPORTED|MISLEADING|UNSUPPORTED)/i],
-    explanation: [/EXPLANATION:\s*(.+?)(?=SOURCE:|VERDICT:|WHATSAPP:|SHAREABLE:|$)/is],
-    source: [/SOURCE:\s*(.+?)(?=WHATSAPP:|SHAREABLE:|EXPLANATION:|VERDICT:|$)/is],
-    whatsapp: [/SHAREABLE REPLY:\s*(.+?)$/is, /WHATSAPP:\s*(.+?)$/is],
-  };
+  const lines = text.split("\n").map((l: string) => l.trim()).filter(Boolean);
+  let section = "";
 
-  for (const pattern of patterns.verdict) {
-    const match = text.match(pattern);
-    if (match) { verdict = match[1].toUpperCase(); break; }
+  for (const line of lines) {
+    const low = line.toLowerCase();
+    if (low.startsWith("verdict:")) {
+      const v = line.slice(8).trim().toUpperCase();
+      if (v.includes("UNSUPPORTED") || v.includes("NOT SUPPORTED")) verdict = "UNSUPPORTED";
+      else if (v.includes("SUPPORTED") && !v.includes("UN")) verdict = "SUPPORTED";
+      else verdict = "MISLEADING";
+      section = "";
+    } else if (low.startsWith("explanation:")) {
+      section = "exp";
+      const rest = line.slice(12).trim();
+      if (rest) explanation += rest + " ";
+    } else if (low.startsWith("source:")) {
+      section = "src";
+      const rest = line.slice(7).trim();
+      if (rest) source += rest + " ";
+    } else if (low.startsWith("shareable reply:") || low.startsWith("whatsapp:") || low.startsWith("whatsapp reply:")) {
+      section = "wa";
+      const rest = line.slice(low.indexOf(":") + 1).trim();
+      if (rest) whatsapp += rest + " ";
+    } else {
+      if (section === "exp") explanation += line + " ";
+      else if (section === "src") source += line + " ";
+      else if (section === "wa") whatsapp += line + " ";
+    }
   }
 
-  for (const pattern of patterns.explanation) {
-    const match = text.match(pattern);
-    if (match?.[1]) { explanation = match[1].trim().replace(/\n/g, ' ').replace(/\s+/g, ' '); break; }
-  }
-
-  for (const pattern of patterns.source) {
-    const match = text.match(pattern);
-    if (match?.[1]) { source = match[1].trim().replace(/\n/g, ' ').replace(/\s+/g, ' '); break; }
-  }
-
-  for (const pattern of patterns.whatsapp) {
-    const match = text.match(pattern);
-    if (match?.[1]) { whatsapp = match[1].trim().replace(/\n/g, ' ').replace(/\s+/g, ' '); break; }
-  }
+  explanation = explanation.trim();
+  // Fix source bleed — take only first line and limit length
+  source = source.trim().split("\n")[0].trim();
+  if (source.length > 80) source = source.substring(0, 80).trim();
+  whatsapp = whatsapp.trim();
 
   if (!explanation || explanation.length < 20) {
-    explanation = `Based on available evidence, this claim requires careful evaluation. Please consult a healthcare professional for personal advice.`;
+    explanation = "Based on available evidence, this claim requires careful evaluation. Please consult a healthcare professional for personal advice.";
   }
 
   if (!source || source.length < 3) {
@@ -225,7 +216,54 @@ serve(async (req) => {
   }
 
   try {
-    const { claim, language = "English" } = await req.json();
+    const { claim, language = "English", action } = await req.json();
+
+    // Handle community report action
+    if (action === "report") {
+      const supabase = createClient(
+        Deno.env.get("SUPABASE_URL") ?? "",
+        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+      );
+
+      const { data: existing } = await supabase
+        .from("community_reports")
+        .select("*")
+        .eq("claim", claim)
+        .single();
+
+      if (existing) {
+        await supabase
+          .from("community_reports")
+          .update({ count: existing.count + 1, updated_at: new Date().toISOString() })
+          .eq("claim", claim);
+      } else {
+        await supabase
+          .from("community_reports")
+          .insert({ claim, count: 1 });
+      }
+
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Handle fetch reports action
+    if (action === "getReports") {
+      const supabase = createClient(
+        Deno.env.get("SUPABASE_URL") ?? "",
+        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+      );
+
+      const { data } = await supabase
+        .from("community_reports")
+        .select("*")
+        .order("count", { ascending: false })
+        .limit(5);
+
+      return new Response(JSON.stringify({ reports: data || [] }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     if (!claim || typeof claim !== 'string' || claim.trim().length === 0) {
       return new Response(
@@ -236,7 +274,6 @@ serve(async (req) => {
 
     const trimmedClaim = claim.trim().substring(0, 500);
 
-    // Step 1 — Crisis detection
     if (isCrisis(trimmedClaim)) {
       return new Response(
         JSON.stringify({ crisis: true }),
@@ -244,7 +281,6 @@ serve(async (req) => {
       );
     }
 
-    // Step 2 — Health relevance check
     if (!isHealthRelated(trimmedClaim)) {
       return new Response(
         JSON.stringify({ offTopic: true }),
@@ -252,13 +288,12 @@ serve(async (req) => {
       );
     }
 
-    // Step 3 — AI analysis
     const systemPrompt = `You are InfoCure, a health verification tool. Respond in ${language} using ONLY plain text (no markdown, no asterisks).
 
 Format EXACTLY as:
 VERDICT: [SUPPORTED/MISLEADING/UNSUPPORTED]
 EXPLANATION: [2-3 sentences]
-SOURCE: [Specific organization - never default to WHO alone]
+SOURCE: [Specific organization name only — one line, no extra text]
 SHAREABLE REPLY: [Conversational summary for sharing]`;
 
     const userPrompt = `Claim: "${trimmedClaim}"\n\nProvide health analysis with specific source.`;

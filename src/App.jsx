@@ -1,11 +1,11 @@
-import { useState, memo, useCallback } from "react";
+import { useState, memo, useCallback, useEffect } from "react";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 const sanitizeInput = (input) => input.trim().slice(0, 500);
 
-async function checkClaim(claim, language) {
+async function callEdgeFunction(body) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 20000);
   try {
@@ -16,27 +16,16 @@ async function checkClaim(claim, language) {
         "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
         "apikey": SUPABASE_ANON_KEY,
       },
-      body: JSON.stringify({ claim, language }),
+      body: JSON.stringify(body),
       signal: controller.signal,
     });
     clearTimeout(timeout);
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("API Error:", response.status, errorText);
       throw new Error(`Server error: ${response.status}`);
     }
     const data = await response.json();
     if (data.error) throw new Error(data.error);
-
-    // Clean up source — remove anything after newline or shareable reply bleed
-    if (data.source) {
-      data.source = data.source.split('\n')[0].trim();
-      // Remove if source accidentally contains shareable reply content
-      if (data.source.length > 100) {
-        data.source = data.source.substring(0, 100).trim();
-      }
-    }
-
     return data;
   } catch (err) {
     clearTimeout(timeout);
@@ -144,7 +133,7 @@ function CommunityReports({ reports }) {
     <div className="history-card">
       <h4 className="history-title">Most Reported in Community</h4>
       <div className="history-list">
-        {reports.slice(0, 5).map((item, i) => (
+        {reports.map((item, i) => (
           <div key={i} className="history-item">
             <span className="history-count">{item.count}x</span>
             <span className="history-text">{item.claim}</span>
@@ -185,6 +174,19 @@ export default function App() {
     "Hindi", "Urdu", "Portuguese", "Spanish", "Bengali", "Hausa", "Pashto",
   ];
 
+  // Load community reports from database on mount
+  useEffect(() => {
+    async function loadReports() {
+      try {
+        const data = await callEdgeFunction({ action: "getReports" });
+        if (data.reports) setReports(data.reports);
+      } catch (err) {
+        console.error("Failed to load reports:", err);
+      }
+    }
+    loadReports();
+  }, []);
+
   const resetState = () => {
     setResult(null);
     setOffTopic(false);
@@ -220,7 +222,7 @@ export default function App() {
     setLoadingStep("Analyzing...");
 
     try {
-      const data = await checkClaim(input, language);
+      const data = await callEdgeFunction({ claim: input, language });
 
       if (data.crisis) {
         setCrisis(true);
@@ -259,16 +261,16 @@ export default function App() {
     setLoadingStep("");
   }, [claim, language, lastCallTime]);
 
-  const handleReport = () => {
+  const handleReport = async () => {
     setReported(true);
-    setReports(prev => {
-      const existing = prev.find(r => r.claim === currentClaim);
-      if (existing) {
-        return prev.map(r => r.claim === currentClaim ? { ...r, count: r.count + 1 } : r)
-          .sort((a, b) => b.count - a.count);
-      }
-      return [...prev, { claim: currentClaim, count: 1 }].sort((a, b) => b.count - a.count);
-    });
+    try {
+      await callEdgeFunction({ action: "report", claim: currentClaim });
+      // Refresh reports from database
+      const data = await callEdgeFunction({ action: "getReports" });
+      if (data.reports) setReports(data.reports);
+    } catch (err) {
+      console.error("Failed to report:", err);
+    }
   };
 
   const handleSelectHistory = (selectedClaim) => {
@@ -295,6 +297,10 @@ export default function App() {
                 <div className="hotline-item">
                   <span className="hotline-region">🌍 International</span>
                   <a href="https://www.befrienders.org" target="_blank" rel="noreferrer">Befrienders Worldwide — befrienders.org</a>
+                </div>
+                <div className="hotline-item">
+                  <span className="hotline-region">🇨🇦 Canada</span>
+                  <a href="tel:18334564566">Talk Suicide Canada — 1-833-456-4566 (24/7)</a>
                 </div>
                 <div className="hotline-item">
                   <span className="hotline-region">🇺🇸 USA</span>
