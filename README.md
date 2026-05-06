@@ -33,6 +33,7 @@ Health misinformation spreads quickly through social media and messaging apps in
 - Typo handling and automatic spelling correction
 - Timeout and retry handling for reliability
 - Rate limiting and input sanitization
+- Demo Mode — runs without API keys so anyone can explore the interface instantly
 
 ---
 
@@ -50,12 +51,21 @@ Health misinformation spreads quickly through social media and messaging apps in
 
 ---
 
-## How to Run Locally
+## Try It
+
+**Easiest — just open the live site:**
+
+👉 [info-cure.vercel.app](https://info-cure.vercel.app)
+
+No setup, no accounts, no API keys. Works instantly in your browser.
+
+---
+
+## Run Locally
 
 **Prerequisites:**
 - Node.js v18 or higher
-- A Supabase project with the Edge Function deployed
-- An OpenRouter API key (free at [openrouter.ai](https://openrouter.ai))
+- No API keys needed to get started
 
 **Steps:**
 
@@ -72,7 +82,21 @@ cd InfoCure
 npm install
 ```
 
-3. Create a `.env` file in the root folder:
+3. Start the development server:
+
+```bash
+npm run dev
+```
+
+4. Open [http://localhost:5173](http://localhost:5173) in your browser.
+
+> The app runs in **Demo Mode** by default — no API keys needed. A few common health claims have pre-built responses so you can explore the interface straight away. For real AI-powered verification, follow the steps below.
+
+---
+
+### Want Real AI Responses?
+
+To enable real AI-powered health verification, create a `.env` file in the root folder:
 
 ```
 VITE_SUPABASE_URL=your_supabase_url
@@ -80,23 +104,13 @@ VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 VITE_OPENROUTER_API_KEY=your_openrouter_api_key
 ```
 
-4. Deploy the Supabase Edge Function:
+Both [Supabase](https://supabase.com) and [OpenRouter](https://openrouter.ai) are free to sign up. Then deploy the Edge Function:
 
 ```bash
 supabase functions deploy check-claim
 supabase secrets set OPENROUTER_API_KEY=your_openrouter_api_key
 supabase secrets set DB_SERVICE_ROLE_KEY=your_service_role_key
 ```
-
-5. Start the development server:
-
-```bash
-npm run dev
-```
-
-6. Open [http://localhost:5173](http://localhost:5173) in your browser.
-
-> **Just want to try it?** Visit [info-cure.vercel.app](https://info-cure.vercel.app) — no setup needed.
 
 ---
 
@@ -110,7 +124,7 @@ npm run dev
 
 **Architecture** — Started with browser-side API calls. Moved to Supabase Edge Functions so the API key is never exposed in the browser and all parsing happens server-side.
 
-**Regional API restrictions** — Several free AI APIs had quota or access issues. Required testing multiple providers and building retry logic with multiple model fallbacks.
+**Regional API restrictions** — Several free AI APIs had quota or access issues in the UAE. Required testing multiple providers and building retry logic with multiple model fallbacks.
 
 ---
 
