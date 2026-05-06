@@ -3,9 +3,60 @@ import { useState, memo, useCallback, useEffect } from "react";
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
+const IS_DEMO_MODE = !import.meta.env.VITE_SUPABASE_URL ||
+  !import.meta.env.VITE_SUPABASE_ANON_KEY;
+
 const sanitizeInput = (input) => input.trim().slice(0, 500);
 
+function getMockResponse(claim) {
+  const lowerClaim = claim.toLowerCase();
+
+  if (lowerClaim.includes("probiotic")) {
+    return {
+      verdict: "SUPPORTED",
+      explanation: "Probiotics are live beneficial bacteria that help maintain digestive health. Multiple studies show they can help with conditions like antibiotic-associated diarrhea and IBS.",
+      source: "International Scientific Association for Probiotics and Prebiotics (ISAPP)",
+      whatsapp: "Yes! Probiotics support gut health by maintaining healthy gut flora. Look for reputable brands with live cultures. (ISAPP)"
+    };
+  }
+  if (lowerClaim.includes("vaccine") && lowerClaim.includes("infertility")) {
+    return {
+      verdict: "UNSUPPORTED",
+      explanation: "Extensive research shows no link between vaccines and infertility. This myth has been debunked by multiple large-scale studies involving millions of participants.",
+      source: "Centers for Disease Control and Prevention (CDC)",
+      whatsapp: "Vaccines do NOT cause infertility. This is a dangerous myth. Vaccination is safe and strongly recommended. (CDC)"
+    };
+  }
+  if (lowerClaim.includes("garlic") && lowerClaim.includes("blood pressure")) {
+    return {
+      verdict: "MISLEADING",
+      explanation: "Garlic may have mild blood pressure lowering effects, but it is not a replacement for prescribed medication. Effects are modest at best according to current research.",
+      source: "American Heart Association (AHA)",
+      whatsapp: "Garlic can be part of a heart-healthy diet, but please don't stop your blood pressure medication. Always consult your doctor. (AHA)"
+    };
+  }
+  if (lowerClaim.includes("salt water") && lowerClaim.includes("infection")) {
+    return {
+      verdict: "MISLEADING",
+      explanation: "Salt water can help soothe a sore throat and may reduce bacteria temporarily, but it cannot cure infections. Bacterial infections require proper medical treatment.",
+      source: "National Institutes of Health (NIH)",
+      whatsapp: "Salt water gargles can give temporary relief but won't cure an infection. Please see a doctor if symptoms persist. (NIH)"
+    };
+  }
+  return {
+    verdict: "MISLEADING",
+    explanation: `This is a demo response for: "${claim.substring(0, 80)}...". In production with API keys, InfoCure would provide real AI-powered health verification.`,
+    source: "Demo Mode — Add API keys for real analysis",
+    whatsapp: `Demo mode active. Add your Supabase and OpenRouter API keys to get real health verification results. (InfoCure Demo)`
+  };
+}
+
 async function callEdgeFunction(body) {
+  if (IS_DEMO_MODE && !body.action) {
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    return getMockResponse(body.claim || "");
+  }
+
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 20000);
   try {
@@ -22,6 +73,7 @@ async function callEdgeFunction(body) {
     clearTimeout(timeout);
     if (!response.ok) {
       const errorText = await response.text();
+      console.error("API Error:", response.status, errorText);
       throw new Error(`Server error: ${response.status}`);
     }
     const data = await response.json();
@@ -174,8 +226,8 @@ export default function App() {
     "Hindi", "Urdu", "Portuguese", "Spanish", "Bengali", "Hausa", "Pashto",
   ];
 
-  // Load community reports from database on mount
   useEffect(() => {
+    if (IS_DEMO_MODE) return;
     async function loadReports() {
       try {
         const data = await callEdgeFunction({ action: "getReports" });
@@ -263,9 +315,9 @@ export default function App() {
 
   const handleReport = async () => {
     setReported(true);
+    if (IS_DEMO_MODE) return;
     try {
       await callEdgeFunction({ action: "report", claim: currentClaim });
-      // Refresh reports from database
       const data = await callEdgeFunction({ action: "getReports" });
       if (data.reports) setReports(data.reports);
     } catch (err) {
@@ -289,6 +341,11 @@ export default function App() {
           <p className="header-sub">Health misinformation spreads rapidly through messaging apps in regions with limited access to medical professionals. InfoCure helps field workers respond with sourced, plain-language guidance in 11 languages.</p>
         </header>
         <main className="main">
+          {IS_DEMO_MODE && (
+            <div className="demo-banner">
+              🎭 Demo Mode — Running with mock data. Add API keys for real health verification.
+            </div>
+          )}
           {crisis && (
             <div className="crisis-banner">
               <p className="crisis-title">You are not alone.</p>

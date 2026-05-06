@@ -96,6 +96,8 @@ npm run dev
 
 6. Open [http://localhost:5173](http://localhost:5173) in your browser.
 
+> **Just want to try it?** Visit [info-cure.vercel.app](https://info-cure.vercel.app) — no setup needed.
+
 ---
 
 ## Challenges
