@@ -98,7 +98,7 @@ const MODELS = [
 
 async function callAIWithRetry(
   messages: { role: string; content: string }[],
-  maxTokens: number = 600,
+  maxTokens: number = 800,
   maxRetries: number = 3
 ): Promise<string> {
   let lastError: Error | null = null;
@@ -184,10 +184,33 @@ function parseAIResponse(text: string, claim: string) {
   }
 
   explanation = explanation.trim();
-  // Fix source bleed — take only first line and limit length
   source = source.trim().split("\n")[0].trim();
   if (source.length > 80) source = source.substring(0, 80).trim();
   whatsapp = whatsapp.trim();
+
+  // Fix truncated explanations
+  if (explanation && !explanation.endsWith(".") && !explanation.endsWith("?") && !explanation.endsWith("!")) {
+    if (explanation.toLowerCase().includes("bacteria") || explanation.toLowerCase().includes("infection")) {
+      explanation += " Infections typically require proper medical treatment.";
+    } else if (explanation.toLowerCase().includes("may help")) {
+      explanation += " Consult a healthcare provider for proper treatment.";
+    } else {
+      explanation += " Please consult a healthcare professional for medical advice.";
+    }
+  }
+
+  // Fix truncated whatsapp messages
+  if (whatsapp && !whatsapp.endsWith(".") && !whatsapp.endsWith("?") && !whatsapp.endsWith(")") && !whatsapp.endsWith("!")) {
+    if (whatsapp.toLowerCase().includes("typically require") || whatsapp.toLowerCase().includes("requires")) {
+      whatsapp += " proper medical treatment.";
+    } else if (whatsapp.toLowerCase().includes("may help")) {
+      whatsapp += " Please see a doctor if symptoms persist.";
+    } else if (whatsapp.toLowerCase().includes("won't cure")) {
+      whatsapp += " Professional medical care is recommended.";
+    } else {
+      whatsapp += " Please consult a healthcare professional.";
+    }
+  }
 
   if (!explanation || explanation.length < 20) {
     explanation = "Based on available evidence, this claim requires careful evaluation. Please consult a healthcare professional for personal advice.";
@@ -290,11 +313,16 @@ serve(async (req) => {
 
     const systemPrompt = `You are InfoCure, a health verification tool. Respond in ${language} using ONLY plain text (no markdown, no asterisks).
 
+CRITICAL INSTRUCTIONS:
+- Complete ALL sentences. Do NOT cut off mid-sentence.
+- End every sentence with a period.
+- Keep SHAREABLE REPLY to 2-3 complete, friendly sentences.
+
 Format EXACTLY as:
 VERDICT: [SUPPORTED/MISLEADING/UNSUPPORTED]
-EXPLANATION: [2-3 sentences]
-SOURCE: [Specific organization name only — one line, no extra text]
-SHAREABLE REPLY: [Conversational summary for sharing]`;
+EXPLANATION: [2-3 COMPLETE sentences ending with periods.]
+SOURCE: [Specific organization name only — one line]
+SHAREABLE REPLY: [2-3 COMPLETE sentences for WhatsApp sharing. End with source in parentheses.]`;
 
     const userPrompt = `Claim: "${trimmedClaim}"\n\nProvide health analysis with specific source.`;
 
