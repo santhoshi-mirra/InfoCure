@@ -220,7 +220,11 @@ export default function App() {
   const [reported, setReported] = useState(false);
   const [currentClaim, setCurrentClaim] = useState("");
   const [lastCallTime, setLastCallTime] = useState(0);
-  const [theme, setTheme] = useState("dark");
+  const [theme, setTheme] = useState("light");
+
+  useEffect(() => {
+  document.documentElement.classList.add("light");
+}, []);
 
   const toggleTheme = () => {
     const newTheme = theme === "dark" ? "light" : "dark";
