@@ -31,10 +31,10 @@
 }
 
 :root.light {
-  --bg: #F4F4FB;
-  --surface: #ECEDF8;
-  --surface-2: #E2E3F2;
-  --border: #D0D2E8;
+  --bg: #FAF8F5;
+  --surface: #F2EFE9;
+  --surface-2: #EAE6DE;
+  --border: #DDD8CE;
   --text: #1A1B2E;
   --text-muted: #5C5F80;
   --text-faint: #9395B0;
