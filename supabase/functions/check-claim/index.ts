@@ -79,9 +79,7 @@ async function callAIWithRetry(
   throw lastError || new Error("All AI attempts failed");
 }
 
-// NEW: AI-powered health relevance detection (works for ANY language)
 async function isHealthRelated(claim: string, language: string): Promise<boolean> {
-  // Very short claims - ask for clarification
   if (claim.length < 5) {
     return false;
   }
@@ -117,11 +115,9 @@ async function isHealthRelated(claim: string, language: string): Promise<boolean
     ], 10, 2);
     
     const result = response.trim().toUpperCase() === "YES";
-    console.log(`🔍 Relevance check: "${claim.substring(0, 50)}..." -> ${result ? "HEALTH ✅" : "NOT HEALTH ❌"}`);
     return result;
     
   } catch (err) {
-    // If AI fails, assume it's health-related (better false positive than false negative)
     console.error("Relevance check failed, defaulting to true");
     return true;
   }
@@ -168,7 +164,6 @@ function parseAIResponse(text: string, claim: string) {
   if (source.length > 80) source = source.substring(0, 80).trim();
   whatsapp = whatsapp.trim();
 
-  // Fix truncated explanations
   if (explanation && !explanation.endsWith(".") && !explanation.endsWith("?") && !explanation.endsWith("!")) {
     if (explanation.toLowerCase().includes("bacteria") || explanation.toLowerCase().includes("infection")) {
       explanation += " Infections typically require proper medical treatment.";
@@ -179,7 +174,6 @@ function parseAIResponse(text: string, claim: string) {
     }
   }
 
-  // Fix truncated whatsapp messages
   if (whatsapp && !whatsapp.endsWith(".") && !whatsapp.endsWith("?") && !whatsapp.endsWith(")") && !whatsapp.endsWith("!")) {
     if (whatsapp.toLowerCase().includes("typically require") || whatsapp.toLowerCase().includes("requires")) {
       whatsapp += " proper medical treatment.";
@@ -225,7 +219,7 @@ serve(async (req) => {
     if (action === "report") {
       const supabase = createClient(
         Deno.env.get("SUPABASE_URL") ?? "",
-        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+        Deno.env.get("DB_SERVICE_ROLE_KEY") ?? ""
       );
 
       const { data: existing } = await supabase
@@ -235,10 +229,20 @@ serve(async (req) => {
         .single();
 
       if (existing) {
-        await supabase
-          .from("community_reports")
-          .update({ count: existing.count + 1, updated_at: new Date().toISOString() })
-          .eq("claim", claim);
+        const updatedAt = new Date(existing.updated_at);
+        const daysSince = (Date.now() - updatedAt.getTime()) / (1000 * 60 * 60 * 24);
+
+        if (daysSince > 3) {
+          await supabase
+            .from("community_reports")
+            .update({ count: 1, updated_at: new Date().toISOString() })
+            .eq("claim", claim);
+        } else {
+          await supabase
+            .from("community_reports")
+            .update({ count: existing.count + 1, updated_at: new Date().toISOString() })
+            .eq("claim", claim);
+        }
       } else {
         await supabase
           .from("community_reports")
@@ -254,7 +258,7 @@ serve(async (req) => {
     if (action === "getReports") {
       const supabase = createClient(
         Deno.env.get("SUPABASE_URL") ?? "",
-        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+        Deno.env.get("DB_SERVICE_ROLE_KEY") ?? ""
       );
 
       const { data } = await supabase
@@ -277,7 +281,6 @@ serve(async (req) => {
 
     const trimmedClaim = claim.trim().substring(0, 500);
 
-    // Check for crisis FIRST
     if (isCrisis(trimmedClaim)) {
       return new Response(
         JSON.stringify({ crisis: true }),
@@ -285,18 +288,15 @@ serve(async (req) => {
       );
     }
 
-    // NEW: AI-powered health relevance check (works for any language)
     const relevant = await isHealthRelated(trimmedClaim, language);
     
     if (!relevant) {
-      console.log(`📋 Off-topic claim rejected: "${trimmedClaim.substring(0, 80)}..."`);
       return new Response(
         JSON.stringify({ offTopic: true }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Updated system prompt with STRICT language enforcement
     const systemPrompt = `You are InfoCure, a health verification tool.
 
 ⚠️ CRITICAL LANGUAGE INSTRUCTION:
