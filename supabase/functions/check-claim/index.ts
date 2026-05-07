@@ -9,12 +9,18 @@ const corsHeaders = {
 const CRISIS_KEYWORDS = [
   "suicidal", "suicide", "kill myself", "end my life", "want to die",
   "don't want to live", "no reason to live", "hopeless", "worthless",
-  "can't go on", "self harm", "self-harm", "hurt myself", "cutting myself", 
+  "can't go on", "self harm", "self-harm", "hurt myself", "cutting myself",
   "overdose", "hang myself", "jump off", "drowning myself", "shoot myself",
-  "depressed", "depression", "anxiety", "panic attack", "ptsd", "trauma", "cut myself", "self harm", 
-  "self-harm", "hurt myself", "cutting myself", "overdose", "hang myself", "jump off", "drowning myself", "shoot myself",
-  "i want to die", "i don't want to live", "i can't go on", "i'm hopeless", "i'm worthless", "hate", "depressed", "depression", 
-  "anxiety", "panic attack", "ptsd",
+  "i want to die", "i don't want to live", "i can't go on", "i'm hopeless",
+  "i'm worthless", "cut myself", "depressed and want to die", "feeling suicidal", 
+  "helpless", "numb and want to die", "tired of living", "i wish i was dead", "i want to end it all",
+  "i'm a burden and want to die", "i have no reason to live", "i want to disappear", "i want to be gone",
+  "i'm overwhelmed and want to die", "i'm in so much pain i want to die", "i can't take this anymore and want to die",
+  "i'm struggling and want to die", "i'm suffering and want to die", "i'm in despair and want to die",
+  "worthless", "sad", "fatigued", "exhausted", "alone", "lonely", "isolated", "rejected", "unloved", "empty",
+  "fat", "ugly", "stupid", "idiot", "failure", "disgusting", "nobody cares", "no one cares", "everyone would be better off without me",,
+  "bullied", "abused", "harassed", "assaulted", "traumatized", "victimized", "mistreated", "neglected",
+  'cutting', 'overdosing', 'hanging', 'drowning', 'shooting', 'jumping off', "hang myself", "kill myself", "end my life", "want to die", "don't want to live", "no reason to live"
 ];
 
 function isCrisis(claim: string): boolean {
@@ -22,10 +28,80 @@ function isCrisis(claim: string): boolean {
   return CRISIS_KEYWORDS.some(keyword => lower.includes(keyword));
 }
 
+function isHealthRelated(claim: string): boolean {
+  const lower = claim.toLowerCase();
+
+  const nonHealthKeywords = [
+    'who won', 'world cup', 'football score', 'cricket score', 'basketball score',
+    'movie', 'film', 'netflix', 'actor', 'actress', 'celebrity', 'singer',
+    'president', 'election', 'politics', 'government', 'minister', 'prime minister',
+    'bitcoin', 'crypto', 'stock market', 'finance', 'economy',
+    'coding', 'programming', 'software', 'javascript', 'python',
+    'recipe', 'how to cook', 'restaurant', 'hotel', 'travel destination',
+    'weather', 'temperature outside', 'forecast',
+    'music album', 'song lyrics', 'concert',
+    'fashion', 'outfit', 'shopping',
+    'math', 'algebra', 'history lesson', 'geography',
+    'who is', 'what is the capital', 'how do i code',"how to make", "how to build", "how to create", "how to learn", "what is the best way to", "best way to", "can you help me with", "explain like i'm 5",
+    "how to", "what is", "who is", "where is", "when is", "why is", "which is", "can you tell me about", "give me information on", "news about", "latest news on", "sports score", "movie times", "book recommendation", "music recommendation",
+    "where can i find", "how do i get", "directions to", "translate", "what does mean", "define", "synonym for", "antonym for", "how to say in", "what language is", "is it going to rain", "what's the weather", "who won the game", "what's the score", "when is the next game",
+    "which movie should i watch", "what's a good restaurant", "how do i get to", "what's the best way to", "can you help me with"
+  ];
+
+  const healthKeywords = [
+    'health', 'healthy', 'disease', 'illness', 'symptom', 'treatment', 'cure',
+    'medicine', 'medication', 'drug', 'pill', 'vaccine', 'vaccination',
+    'virus', 'bacteria', 'infection', 'cancer', 'diabetes', 'blood pressure',
+    'heart', 'liver', 'kidney', 'lung', 'brain', 'immune', 'allergy',
+    'nutrition', 'vitamin', 'mineral', 'supplement', 'diet', 'weight loss',
+    'exercise', 'fitness', 'mental health', 'anxiety', 'depression', 'stress',
+    'sleep', 'fatigue', 'pain', 'fever', 'cough', 'cholesterol',
+    'pregnancy', 'pregnant', 'fertility', 'menopause', 'menstrual', 'period',
+    'hormonal', 'hormone', 'pcos', 'thyroid', 'probiotic', 'gut health',
+    'surgery', 'doctor', 'hospital', 'clinic', 'therapy', 'antibiotic',
+    'sugar', 'protein', 'carb', 'calorie', 'fat intake',
+    'garlic', 'ginger', 'turmeric', 'honey', 'salt water',
+    'blood', 'skin condition', 'hair loss', 'bone', 'muscle', 'joint',
+    'stroke', 'asthma', 'arthritis', 'obesity',
+    'breastfeeding', 'infant health', 'child health', 'aging',
+    'cure', 'prevent', 'treat', 'reduce', 'lower', 'improve health',
+    'good for', 'bad for', 'safe to', 'dangerous to',
+    'does eating', 'can drinking', 'is it safe', 'health benefits',
+  ];
+
+  // Reject immediately if matches non-health
+  for (const keyword of nonHealthKeywords) {
+    if (lower.includes(keyword)) return false;
+  }
+
+  // Accept if matches health
+  for (const keyword of healthKeywords) {
+    if (lower.includes(keyword)) return true;
+  }
+
+  // Check question patterns
+  const healthPatterns = [
+    /does .* (cure|prevent|treat|help|reduce|lower|improve|cause)/i,
+    /can .* (cause|lead to|prevent|treat|cure|help)/i,
+    /is .* (good for|bad for|safe|healthy|dangerous)/i,
+    /what (should|can) i (eat|take|do) for/i,
+    /how to (treat|prevent|cure|reduce|lower|improve)/i,
+    /what are the (symptoms|effects|causes|benefits|risks)/i,
+    /is it safe to/i,
+    /health benefits of/i,
+  ];
+
+  for (const pattern of healthPatterns) {
+    if (pattern.test(lower)) return true;
+  }
+
+  return false;
+}
+
 const MODELS = [
-  "openrouter/free",
-  "nousresearch/hermes-3-llama-3.1-405b:free",
-  "openrouter/free"
+  "anthropic/claude-haiku-20240307",
+  "anthropic/claude-haiku-20240307",
+  "openai/gpt-4o-mini",
 ];
 
 async function callAIWithRetry(
@@ -79,50 +155,6 @@ async function callAIWithRetry(
   throw lastError || new Error("All AI attempts failed");
 }
 
-async function isHealthRelated(claim: string, language: string): Promise<boolean> {
-  if (claim.length < 5) {
-    return false;
-  }
-  
-  try {
-    const response = await callAIWithRetry([
-      { 
-        role: "system", 
-        content: `You are a classifier. Answer ONLY "YES" or "NO". 
-        Is this a health, medical, nutrition, wellness, fitness, or mental health question?
-        Language detected: ${language}
-        
-        Say YES for questions about:
-        - Food, diet, nutrition
-        - Diseases, symptoms, treatments
-        - Body parts, organs, functions
-        - Medications, vaccines, supplements
-        - Exercise, fitness, weight
-        - Mental health, stress, sleep
-        - Pregnancy, child health, aging
-        
-        Say NO only for:
-        - Politics, sports scores, entertainment
-        - Technology, programming, gaming
-        - Completely unrelated topics
-        
-        Be PERMISSIVE - if it MIGHT be health-related, say YES.` 
-      },
-      { 
-        role: "user", 
-        content: claim 
-      }
-    ], 10, 2);
-    
-    const result = response.trim().toUpperCase() === "YES";
-    return result;
-    
-  } catch (err) {
-    console.error("Relevance check failed, defaulting to true");
-    return true;
-  }
-}
-
 function parseAIResponse(text: string, claim: string) {
   let verdict = "MISLEADING";
   let explanation = "";
@@ -165,25 +197,11 @@ function parseAIResponse(text: string, claim: string) {
   whatsapp = whatsapp.trim();
 
   if (explanation && !explanation.endsWith(".") && !explanation.endsWith("?") && !explanation.endsWith("!")) {
-    if (explanation.toLowerCase().includes("bacteria") || explanation.toLowerCase().includes("infection")) {
-      explanation += " Infections typically require proper medical treatment.";
-    } else if (explanation.toLowerCase().includes("may help")) {
-      explanation += " Consult a healthcare provider for proper treatment.";
-    } else {
-      explanation += " Please consult a healthcare professional for medical advice.";
-    }
+    explanation += " Please consult a healthcare professional for medical advice.";
   }
 
   if (whatsapp && !whatsapp.endsWith(".") && !whatsapp.endsWith("?") && !whatsapp.endsWith(")") && !whatsapp.endsWith("!")) {
-    if (whatsapp.toLowerCase().includes("typically require") || whatsapp.toLowerCase().includes("requires")) {
-      whatsapp += " proper medical treatment.";
-    } else if (whatsapp.toLowerCase().includes("may help")) {
-      whatsapp += " Please see a doctor if symptoms persist.";
-    } else if (whatsapp.toLowerCase().includes("won't cure")) {
-      whatsapp += " Professional medical care is recommended.";
-    } else {
-      whatsapp += " Please consult a healthcare professional.";
-    }
+    whatsapp += " Please consult a healthcare professional.";
   }
 
   if (!explanation || explanation.length < 20) {
@@ -281,6 +299,7 @@ serve(async (req) => {
 
     const trimmedClaim = claim.trim().substring(0, 500);
 
+    // Step 1 — Crisis check
     if (isCrisis(trimmedClaim)) {
       return new Response(
         JSON.stringify({ crisis: true }),
@@ -288,41 +307,26 @@ serve(async (req) => {
       );
     }
 
-    const relevant = await isHealthRelated(trimmedClaim, language);
-    
-    if (!relevant) {
+    // Step 2 — Health relevance check (keyword based, no AI call)
+    if (!isHealthRelated(trimmedClaim)) {
       return new Response(
         JSON.stringify({ offTopic: true }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    const systemPrompt = `You are InfoCure, a health verification tool.
+    // Step 3 — AI analysis with Claude Haiku
+    const systemPrompt = `You are InfoCure, a health fact-checker for NGO community health workers. Respond in plain text only. No markdown. No asterisks.
 
-⚠️ CRITICAL LANGUAGE INSTRUCTION:
-You MUST respond in ${language} language ONLY.
-Do NOT use English. Do NOT mix languages.
-If ${language} is not English, respond completely in ${language}.
+Respond in ${language}. Keep ALL section labels in English exactly as shown.
 
 Format EXACTLY as:
-VERDICT: [SUPPORTED/MISLEADING/UNSUPPORTED in ${language}]
-EXPLANATION: [2-3 COMPLETE sentences ending with periods in ${language}]
-SOURCE: [Organization name - keep in English or ${language}]
-SHAREABLE REPLY: [2-3 warm, friendly COMPLETE sentences in ${language} ending with source in parentheses]
+VERDICT: [write only SUPPORTED or MISLEADING or UNSUPPORTED]
+EXPLANATION: [3 clear sentences in ${language} explaining the evidence. End with a period.]
+SOURCE: [Name of the most relevant health authority — CDC, NIH, WHO, AHA, ADA, ACS, Mayo Clinic, or other credible source. One line only.]
+SHAREABLE REPLY: [2-3 warm friendly sentences in ${language} for sharing. End with source in parentheses.]`;
 
-Example for Hindi:
-VERDICT: समर्थित
-EXPLANATION: प्रोबायोटिक्स पाचन स्वास्थ्य के लिए फायदेमंद होते हैं। ये अच्छे बैक्टीरिया हैं जो आंतों को स्वस्थ रखते हैं।
-SOURCE: ISAPP
-SHAREABLE REPLY: प्रोबायोटिक्स आपके पाचन के लिए अच्छे हैं। गुणवत्ता वाले ब्रांड चुनें। (ISAPP)
-
-Example for Spanish:
-VERDICT: APOYADO
-EXPLANATION: Los probióticos son bacterias beneficiosas que ayudan a la salud digestiva. Múltiples estudios respaldan su uso.
-SOURCE: ISAPP
-SHAREABLE REPLY: ¡Sí! Los probióticos apoyan la salud intestinal. Elija marcas de calidad con cultivos vivos. (ISAPP)`;
-
-    const userPrompt = `Analyze this health claim and provide evidence-based information: "${trimmedClaim}"`;
+    const userPrompt = `Health claim to analyze: "${trimmedClaim}"`;
 
     let aiResponse: string;
     try {
