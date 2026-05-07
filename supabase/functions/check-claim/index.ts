@@ -9,85 +9,17 @@ const corsHeaders = {
 const CRISIS_KEYWORDS = [
   "suicidal", "suicide", "kill myself", "end my life", "want to die",
   "don't want to live", "no reason to live", "hopeless", "worthless",
-  "can't go on", "self harm", "self-harm", "hurt myself", "cutting myself", "overdose", "hang myself", "jump off", "drowning myself", "shoot myself",
-  "depressed", "depression", "anxious", "anxiety", "panic attack", "ptsd", "trauma", "bipolar", "schizophrenia", "ocd", "adhd", "autism", "eating disorder", "anorexia", "bulimia",
-  "abuse", "domestic violence", "assault", "rape", "molest", "harass", "stalk", "threaten", "violence", "weapon", "gun", "knife", "cutting", "burning", "harming others"
-];
-
-const HEALTH_KEYWORDS = new Set([
-  'menopause', 'menstruation', 'menstrual', 'period', 'periods', 'pms',
-  'perimenopause', 'postmenopause', 'hormonal', 'hormone', 'hormones',
-  'estrogen', 'progesterone', 'testosterone', 'ovulation', 'ovary', 'ovaries',
-  'uterus', 'cervix', 'endometriosis', 'pcos', 'polycystic', 'fertility',
-  'infertility', 'pregnancy', 'pregnant', 'breastfeeding', 'menstrual cycle',
-  'hot flashes', 'hot flush', 'vaginal', 'contraception', 'contraceptive',
-  'mental', 'anxiety', 'depression', 'stress', 'trauma', 'ptsd', 'bipolar',
-  'schizophrenia', 'ocd', 'adhd', 'autism', 'eating disorder', 'anorexia',
-  'bulimia', 'panic attack', 'phobia', 'therapy', 'counseling', 'psychiatry',
-  'psychologist', 'antidepressant', 'mood', 'emotional',
-  'probiotic', 'probiotics', 'prebiotic', 'prebiotics', 'gut', 'flora',
-  'microbiome', 'digestion', 'digestive', 'stomach', 'intestine', 'colon',
-  'bloating', 'constipation', 'diarrhea', 'ibs', 'crohn',
-  'health', 'healthy', 'disease', 'illness', 'symptom', 'treatment', 'therapy',
-  'cure', 'remedy', 'medicine', 'medication', 'drug', 'pill', 'prescription',
-  'doctor', 'hospital', 'clinic', 'nurse', 'patient', 'diagnosis', 'chronic',
-  'immune', 'immunity', 'antibody', 'vaccine', 'vaccination', 'booster',
-  'virus', 'viral', 'bacteria', 'bacterial', 'infection', 'fungal', 'parasite',
-  'cancer', 'tumor', 'diabetes', 'hypertension', 'asthma', 'allergy', 'allergic',
-  'arthritis', 'inflammation', 'acute', 'pain', 'fever', 'cough',
-  'blood', 'heart', 'cardiovascular', 'liver', 'kidney', 'lung', 'brain',
-  'nerve', 'muscle', 'bone', 'joint', 'skin', 'hair', 'eye', 'ear',
-  'thyroid', 'adrenal', 'pancreas', 'spleen',
-  'nutrition', 'nutrient', 'vitamin', 'mineral', 'supplement', 'herbal', 'herb',
-  'diet', 'food', 'eat', 'drink', 'exercise', 'workout', 'fitness', 'weight',
-  'obesity', 'sleep', 'fatigue', 'cholesterol', 'blood pressure', 'blood sugar',
-  'surgery', 'operation', 'transplant', 'dialysis', 'chemotherapy', 'radiation',
-  'newborn', 'infant', 'child', 'elderly', 'senior', 'aging', 'puberty', 'adolescence', 'adult', 'teenager', 
-  'women', 'man', 'female', 'male', 'gender', 'sex', 'lgbtq', 'transgender', 'non-binary', 'intersex', 'queer',
-  'mental health', 'physical health', 'sexual health', 'reproductive health', 'women\'s health', 'men\'s health', 'child health', 
-  'elderly health', 'public health', 'global health', 'healthcare', 'health system', 'health policy', 'health insurance', 'health equity',
-]);
-
-const HEALTH_PHRASES = [
-  'gut health', 'immune system', 'blood circulation', 'weight loss',
-  'muscle gain', 'mental health', 'joint pain', 'back pain',
-  'headache relief', 'cold remedy', 'flu prevention', 'women health',
-  'reproductive health', 'sexual health', 'bone density', 'heart rate',
-  'blood type', 'body mass', 'hormone levels', 'hormonal imbalance', 'menstrual pain', 
-  'menopause symptoms', 'breast health', 'prostate health', 'diabetes management', 
-  'hypertension control', 'asthma relief', 'allergy treatment', 'cholesterol reduction', 'sleep quality', 'stress relief', 
-  'anxiety reduction', 'depression management', 'cognitive function', 'memory improvement', 'digestion support', 'liver detox', 
-  'kidney function', 'lung capacity', 'brain health', 'eye health', 'thyroid function', 'adrenal fatigue', 
-  'pancreatic health', 'spleen function', 'nutrition absorption', 'vitamin deficiency', 'mineral imbalance', 
-  'supplement effectiveness', 'herbal remedy', 'diet plan', 'exercise routine', 'fitness level', 'weight management',
+  "can't go on", "self harm", "self-harm", "hurt myself", "cutting myself", 
+  "overdose", "hang myself", "jump off", "drowning myself", "shoot myself",
+  "depressed", "depression", "anxiety", "panic attack", "ptsd", "trauma", "cut myself", "self harm", 
+  "self-harm", "hurt myself", "cutting myself", "overdose", "hang myself", "jump off", "drowning myself", "shoot myself",
+  "i want to die", "i don't want to live", "i can't go on", "i'm hopeless", "i'm worthless", "hate", "depressed", "depression", 
+  "anxiety", "panic attack", "ptsd",
 ];
 
 function isCrisis(claim: string): boolean {
   const lower = claim.toLowerCase();
   return CRISIS_KEYWORDS.some(keyword => lower.includes(keyword));
-}
-
-function isHealthRelated(claim: string): boolean {
-  const lower = claim.toLowerCase();
-  for (const keyword of HEALTH_KEYWORDS) {
-    if (lower.includes(keyword)) return true;
-  }
-  for (const phrase of HEALTH_PHRASES) {
-    if (lower.includes(phrase)) return true;
-  }
-  const questionPatterns = [
-    /does .* (cure|prevent|treat|help|reduce|lower|improve)/i,
-    /can .* (cause|lead to|result in|prevent|treat|cure)/i,
-    /is .* (good for|bad for|safe for|effective for)/i,
-    /what (should|can|do) i (eat|take|do) for/i,
-    /how to (treat|prevent|cure|reduce|lower)/i,
-    /what (are|is) the (symptoms|effects|causes|treatment)/i,
-    /what happens (during|after|when)/i,
-  ];
-  for (const pattern of questionPatterns) {
-    if (pattern.test(lower)) return true;
-  }
-  return false;
 }
 
 const MODELS = [
@@ -106,7 +38,7 @@ async function callAIWithRetry(
     const model = MODELS[(attempt - 1) % MODELS.length];
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 15000);
+      const timeoutId = setTimeout(() => controller.abort(), 20000);
       const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
         method: "POST",
         headers: {
@@ -145,6 +77,54 @@ async function callAIWithRetry(
     }
   }
   throw lastError || new Error("All AI attempts failed");
+}
+
+// NEW: AI-powered health relevance detection (works for ANY language)
+async function isHealthRelated(claim: string, language: string): Promise<boolean> {
+  // Very short claims - ask for clarification
+  if (claim.length < 5) {
+    return false;
+  }
+  
+  try {
+    const response = await callAIWithRetry([
+      { 
+        role: "system", 
+        content: `You are a classifier. Answer ONLY "YES" or "NO". 
+        Is this a health, medical, nutrition, wellness, fitness, or mental health question?
+        Language detected: ${language}
+        
+        Say YES for questions about:
+        - Food, diet, nutrition
+        - Diseases, symptoms, treatments
+        - Body parts, organs, functions
+        - Medications, vaccines, supplements
+        - Exercise, fitness, weight
+        - Mental health, stress, sleep
+        - Pregnancy, child health, aging
+        
+        Say NO only for:
+        - Politics, sports scores, entertainment
+        - Technology, programming, gaming
+        - Completely unrelated topics
+        
+        Be PERMISSIVE - if it MIGHT be health-related, say YES.` 
+      },
+      { 
+        role: "user", 
+        content: claim 
+      }
+    ], 10, 2);
+    
+    const result = response.trim().toUpperCase() === "YES";
+    console.log(`🔍 Relevance check: "${claim.substring(0, 50)}..." -> ${result ? "HEALTH ✅" : "NOT HEALTH ❌"}`);
+    return result;
+    
+  } catch (err) {
+    // If AI fails, assume it's health-related (better false positive than false negative)
+    console.error("Relevance check failed, defaulting to true");
+    return true;
+  }
 }
 
 function parseAIResponse(text: string, claim: string) {
@@ -222,7 +202,7 @@ function parseAIResponse(text: string, claim: string) {
     else if (lower.includes('diabetes')) source = "American Diabetes Association (ADA)";
     else if (lower.includes('heart') || lower.includes('blood pressure')) source = "American Heart Association (AHA)";
     else if (lower.includes('cancer')) source = "American Cancer Society (ACS)";
-    else if (lower.includes('menopause') || lower.includes('hormonal') || lower.includes('menstrual')) source = "The Menopause Society (NAMS)";
+    else if (lower.includes('probiotic')) source = "International Scientific Association for Probiotics and Prebiotics (ISAPP)";
     else source = "National Institutes of Health (NIH)";
   }
 
@@ -297,6 +277,7 @@ serve(async (req) => {
 
     const trimmedClaim = claim.trim().substring(0, 500);
 
+    // Check for crisis FIRST
     if (isCrisis(trimmedClaim)) {
       return new Response(
         JSON.stringify({ crisis: true }),
@@ -304,27 +285,44 @@ serve(async (req) => {
       );
     }
 
-    if (!isHealthRelated(trimmedClaim)) {
+    // NEW: AI-powered health relevance check (works for any language)
+    const relevant = await isHealthRelated(trimmedClaim, language);
+    
+    if (!relevant) {
+      console.log(`📋 Off-topic claim rejected: "${trimmedClaim.substring(0, 80)}..."`);
       return new Response(
         JSON.stringify({ offTopic: true }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    const systemPrompt = `You are InfoCure, a health verification tool. Respond in ${language} using ONLY plain text (no markdown, no asterisks).
+    // Updated system prompt with STRICT language enforcement
+    const systemPrompt = `You are InfoCure, a health verification tool.
 
-CRITICAL INSTRUCTIONS:
-- Complete ALL sentences. Do NOT cut off mid-sentence.
-- End every sentence with a period.
-- Keep SHAREABLE REPLY to 2-3 complete, friendly sentences.
+⚠️ CRITICAL LANGUAGE INSTRUCTION:
+You MUST respond in ${language} language ONLY.
+Do NOT use English. Do NOT mix languages.
+If ${language} is not English, respond completely in ${language}.
 
 Format EXACTLY as:
-VERDICT: [SUPPORTED/MISLEADING/UNSUPPORTED]
-EXPLANATION: [2-3 COMPLETE sentences ending with periods.]
-SOURCE: [Specific organization name only — one line]
-SHAREABLE REPLY: [2-3 COMPLETE sentences for WhatsApp sharing. End with source in parentheses.]`;
+VERDICT: [SUPPORTED/MISLEADING/UNSUPPORTED in ${language}]
+EXPLANATION: [2-3 COMPLETE sentences ending with periods in ${language}]
+SOURCE: [Organization name - keep in English or ${language}]
+SHAREABLE REPLY: [2-3 warm, friendly COMPLETE sentences in ${language} ending with source in parentheses]
 
-    const userPrompt = `Claim: "${trimmedClaim}"\n\nProvide health analysis with specific source.`;
+Example for Hindi:
+VERDICT: समर्थित
+EXPLANATION: प्रोबायोटिक्स पाचन स्वास्थ्य के लिए फायदेमंद होते हैं। ये अच्छे बैक्टीरिया हैं जो आंतों को स्वस्थ रखते हैं।
+SOURCE: ISAPP
+SHAREABLE REPLY: प्रोबायोटिक्स आपके पाचन के लिए अच्छे हैं। गुणवत्ता वाले ब्रांड चुनें। (ISAPP)
+
+Example for Spanish:
+VERDICT: APOYADO
+EXPLANATION: Los probióticos son bacterias beneficiosas que ayudan a la salud digestiva. Múltiples estudios respaldan su uso.
+SOURCE: ISAPP
+SHAREABLE REPLY: ¡Sí! Los probióticos apoyan la salud intestinal. Elija marcas de calidad con cultivos vivos. (ISAPP)`;
+
+    const userPrompt = `Analyze this health claim and provide evidence-based information: "${trimmedClaim}"`;
 
     let aiResponse: string;
     try {
@@ -352,6 +350,7 @@ SHAREABLE REPLY: [2-3 COMPLETE sentences for WhatsApp sharing. End with source i
     );
 
   } catch (err) {
+    console.error("Fatal error:", err);
     return new Response(
       JSON.stringify({ error: "Service error. Please try again." }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }

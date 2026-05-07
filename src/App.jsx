@@ -220,6 +220,13 @@ export default function App() {
   const [reported, setReported] = useState(false);
   const [currentClaim, setCurrentClaim] = useState("");
   const [lastCallTime, setLastCallTime] = useState(0);
+  const [theme, setTheme] = useState("dark");
+
+  const toggleTheme = () => {
+    const newTheme = theme === "dark" ? "light" : "dark";
+    setTheme(newTheme);
+    document.documentElement.classList.toggle("light", newTheme === "light");
+  };
 
   const languages = [
     "English", "Arabic", "French", "Swahili",
@@ -335,7 +342,12 @@ export default function App() {
       {!agreed && <DisclaimerModal onAgree={() => setAgreed(true)} />}
       <div className="app">
         <header className="header">
-          <div className="header-tag">For NGO community health workers</div>
+          <div className="header-top-row">
+            <div className="header-tag">For NGO community health workers</div>
+            <button className="theme-toggle" onClick={toggleTheme}>
+              {theme === "dark" ? "☀️ Light" : "🌙 Dark"}
+            </button>
+          </div>
           <h1>InfoCure</h1>
           <p className="header-tagline">Verify health claims circulating on social media. Get an evidence-based reply you can share with your community in seconds.</p>
           <p className="header-sub">Health misinformation spreads rapidly through messaging apps in regions with limited access to medical professionals. InfoCure helps field workers respond with sourced, plain-language guidance in 11 languages.</p>
