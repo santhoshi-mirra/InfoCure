@@ -2,7 +2,7 @@
 
 > AI-powered health misinformation detector for NGO community health workers.
 
-![InfoCure](https://img.shields.io/badge/SDG-3%20Good%20Health-green) ![React](https://img.shields.io/badge/React-18-blue) ![Supabase](https://img.shields.io/badge/Backend-Supabase-darkgreen) ![OpenRouter](https://img.shields.io/badge/AI-OpenRouter-purple)
+![InfoCure](https://img.shields.io/badge/SDG-3%20Good%20Health-green) ![React](https://img.shields.io/badge/React-18-blue) ![Supabase](https://img.shields.io/badge/Backend-Supabase-darkgreen) ![Claude](https://img.shields.io/badge/AI-Claude%20Haiku-orange)
 
 ---
 
@@ -27,10 +27,10 @@ Health misinformation spreads quickly through social media and messaging apps in
 - Women's health support — menopause, menstruation, PCOS, hormonal issues, endometriosis and more are fully supported
 - Crisis support — detects mental health distress and shows hotline numbers for Canada, USA, UK, India, UAE and Pakistan instead of fact-checking
 - Community reporting — flag claims circulating in your area, saved to a real Supabase database visible to all users
-- Most Reported list — loads from database on page open, updates in real time
+- Most Reported list — loads from database on page open, resets every 3 days to stay relevant
 - Claim history — last 5 checks saved in session, clickable to refill
+- Light and dark mode toggle
 - Disclaimer modal on first load — responsible design for a health tool
-- Typo handling and automatic spelling correction
 - Timeout and retry handling for reliability
 - Rate limiting and input sanitization
 - Demo Mode — runs without API keys so anyone can explore the interface instantly
@@ -42,9 +42,9 @@ Health misinformation spreads quickly through social media and messaging apps in
 | Layer | Technology |
 |-------|-----------|
 | Frontend | React 18 + Vite |
-| Styling | Custom CSS with CSS variables, dark mode |
+| Styling | Custom CSS with CSS variables, light and dark mode |
 | Backend | Supabase Edge Functions (Deno/TypeScript) |
-| AI | OpenRouter API |
+| AI | Claude Haiku via OpenRouter API |
 | Database | Supabase (community reports) |
 | Hosting | Vercel |
 | Fonts | DM Sans, DM Mono (Google Fonts) |
@@ -104,7 +104,7 @@ VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 VITE_OPENROUTER_API_KEY=your_openrouter_api_key
 ```
 
-Both [Supabase](https://supabase.com) and [OpenRouter](https://openrouter.ai) are free to sign up. Then deploy the Edge Function:
+Sign up free at [Supabase](https://supabase.com) and [OpenRouter](https://openrouter.ai). Then deploy the Edge Function:
 
 ```bash
 supabase functions deploy check-claim
@@ -112,19 +112,21 @@ supabase secrets set OPENROUTER_API_KEY=your_openrouter_api_key
 supabase secrets set DB_SERVICE_ROLE_KEY=your_service_role_key
 ```
 
+The app uses Claude Haiku via OpenRouter for fast, reliable health verification.
+
 ---
 
 ## Challenges
 
-**Model reliability** — Free OpenRouter models are often flaky and go offline without warning. I added retry logic across multiple model fallbacks and timeout handling so the app never freezes.
+**Model reliability** — Switched from unreliable free models to Claude Haiku via OpenRouter for consistent, well-formatted responses with proper source citations.
 
 **Multilingual parsing** — Getting the AI to respond in 11 languages while keeping English section headers for reliable parsing required extensive prompt engineering. The solution was explicitly instructing the model to keep labels in English and translate only the content.
 
-**Responsible design** — Since this is a health tool, every output has real stakes. I added disclaimers, off-topic rejection, crisis detection, and source citations so users always know this is informational, not clinical advice.
+**Responsible design** — Since this is a health tool, every output has real stakes. Added disclaimers, off-topic rejection, crisis detection, and source citations so users always know this is informational, not clinical advice.
 
 **Architecture** — Started with browser-side API calls. Moved to Supabase Edge Functions so the API key is never exposed in the browser and all parsing happens server-side.
 
-**Regional API restrictions** — Several free AI APIs had quota or access issues in the UAE. Required testing multiple providers and building retry logic with multiple model fallbacks.
+**Regional API restrictions** — Several free AI APIs had quota or access issues in the UAE. Required testing multiple providers before settling on Claude Haiku via OpenRouter.
 
 ---
 
