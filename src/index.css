@@ -20,7 +20,7 @@
   --supported-bg: rgba(76, 175, 125, 0.1);
   --misleading: #d4a843;
   --misleading-bg: rgba(212, 168, 67, 0.1);
-  --unsupported: #475ab7;
+  --unsupported: #c0504d;
   --unsupported-bg: rgba(192, 80, 77, 0.1);
   --warning: #d4a843;
   --error-bg: rgba(192, 80, 77, 0.08);
@@ -31,24 +31,24 @@
 }
 
 :root.light {
-  --bg: #F5F0EB;
-  --surface: #EFEBE4;
-  --surface-2: #E8E2D9;
-  --border: #DDD8D0;
-  --text: #1A1714;
-  --text-muted: #6B6560;
-  --text-faint: #A09890;
-  --accent: #C1654A;
-  --accent-dim: rgba(193, 101, 74, 0.1);
-  --supported: #2D7A4F;
-  --supported-bg: rgba(45, 122, 79, 0.1);
-  --misleading: #A0622A;
-  --misleading-bg: rgba(160, 98, 42, 0.1);
-  --unsupported: #B84040;
-  --unsupported-bg: rgba(184, 64, 64, 0.1);
-  --warning: #A0622A;
-  --error-bg: rgba(184, 64, 64, 0.08);
-  --error-border: rgba(184, 64, 64, 0.3);
+  --bg: #F4F4FB;
+  --surface: #ECEDF8;
+  --surface-2: #E2E3F2;
+  --border: #D0D2E8;
+  --text: #1A1B2E;
+  --text-muted: #5C5F80;
+  --text-faint: #9395B0;
+  --accent: #475AB7;
+  --accent-dim: rgba(71, 90, 183, 0.1);
+  --supported: #2E7D5E;
+  --supported-bg: rgba(46, 125, 94, 0.1);
+  --misleading: #8B6914;
+  --misleading-bg: rgba(139, 105, 20, 0.1);
+  --unsupported: #B03A3A;
+  --unsupported-bg: rgba(176, 58, 58, 0.1);
+  --warning: #8B6914;
+  --error-bg: rgba(176, 58, 58, 0.08);
+  --error-border: rgba(176, 58, 58, 0.3);
 }
 
 body {
@@ -168,14 +168,13 @@ body {
 
 .header {
   margin-bottom: 2.5rem;
-  position: relative;
 }
 
 .header-top-row {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
-  margin-bottom: 0.75rem;
+  margin-bottom: 1rem;
 }
 
 .header-tag {
@@ -186,7 +185,6 @@ body {
   font-size: 0.75rem;
   padding: 0.3rem 0.85rem;
   border-radius: 20px;
-  margin-bottom: 1rem;
 }
 
 .theme-toggle {
@@ -343,7 +341,7 @@ body {
   align-self: flex-end;
   padding: 0.7rem 2rem;
   background: var(--accent);
-  color: var(--bg);
+  color: #ffffff;
   border: none;
   border-radius: 8px;
   font-family: var(--font);
