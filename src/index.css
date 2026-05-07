@@ -31,24 +31,27 @@
 }
 
 :root.light {
-  --bg: #FAF8F5;
-  --surface: #F2EFE9;
-  --surface-2: #EAE6DE;
-  --border: #C8CAFE;
-  --text: #1A1B2E;
-  --text-muted: #5C5F80;
-  --text-faint: #9395B0;
-  --accent: #475AB7;
-  --accent-dim: rgba(71, 90, 183, 0.1);
-  --supported: #2E7D5E;
-  --supported-bg: rgba(46, 125, 94, 0.1);
+  --bg: #FFFBF4;
+  --surface: #F0EBE0;
+  --surface-2: #D8CFBC;
+  --border: #C2C395;
+  --text: #11120D;
+  --text-muted: #565449;
+  --text-faint: #8A8678;
+  --accent: #8B6914;
+  --accent-dim: rgba(139, 105, 20, 0.12);
+  --supported: #2E6B3E;
+  --supported-bg: rgba(46, 107, 62, 0.1);
   --misleading: #8B6914;
   --misleading-bg: rgba(139, 105, 20, 0.1);
-  --unsupported: #B03A3A;
-  --unsupported-bg: rgba(176, 58, 58, 0.1);
+  --unsupported: #8B3A2A;
+  --unsupported-bg: rgba(139, 58, 42, 0.1);
   --warning: #8B6914;
-  --error-bg: rgba(176, 58, 58, 0.08);
-  --error-border: rgba(176, 58, 58, 0.3);
+  --error-bg: rgba(139, 58, 42, 0.08);
+  --error-border: rgba(139, 58, 42, 0.3);
+  --radius: 12px;
+  --font: 'DM Sans', sans-serif;
+  --mono: 'DM Mono', monospace;
 }
 
 body {
