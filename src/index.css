@@ -31,27 +31,24 @@
 }
 
 :root.light {
-  --bg: #FFFBF4;
-  --surface: #F0EBE0;
-  --surface-2: #D8CFBC;
-  --border: #C2C395;
-  --text: #11120D;
-  --text-muted: #565449;
-  --text-faint: #8A8678;
-  --accent: #8B6914;
-  --accent-dim: rgba(139, 105, 20, 0.12);
+  --bg: #FDF8F6;
+  --surface: #F5EDE9;
+  --surface-2: #EDD9D3;
+  --border: #D4A89A;
+  --text: #2A1210;
+  --text-muted: #7A4A42;
+  --text-faint: #A87A72;
+  --accent: #9B2E24;
+  --accent-dim: rgba(155, 46, 36, 0.1);
   --supported: #2E6B3E;
   --supported-bg: rgba(46, 107, 62, 0.1);
-  --misleading: #8B6914;
-  --misleading-bg: rgba(139, 105, 20, 0.1);
-  --unsupported: #8B3A2A;
-  --unsupported-bg: rgba(139, 58, 42, 0.1);
-  --warning: #8B6914;
-  --error-bg: rgba(139, 58, 42, 0.08);
-  --error-border: rgba(139, 58, 42, 0.3);
-  --radius: 12px;
-  --font: 'DM Sans', sans-serif;
-  --mono: 'DM Mono', monospace;
+  --misleading: #8B5E14;
+  --misleading-bg: rgba(139, 94, 20, 0.1);
+  --unsupported: #9B2E24;
+  --unsupported-bg: rgba(155, 46, 36, 0.1);
+  --warning: #8B5E14;
+  --error-bg: rgba(155, 46, 36, 0.08);
+  --error-border: rgba(155, 46, 36, 0.3);
 }
 
 body {
